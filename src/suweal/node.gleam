@@ -1,15 +1,44 @@
 import gleam/float
 import gleam/list
 import gleam/option.{type Option}
+import gleam/pair
 import gleam/string
 import omcg/module
 import suweal/surreal_ql
-import suweal/surreal_type
+import suweal/surreal_type.{type SurrealType}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                        Order Direction                                        //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
 pub type OrderDirection {
   Ascending
   Descending
 }
+
+/// Converts an [OrderDirection] into its [String] representation in SurrealQL.
+pub fn order_direction_to_string(direction: OrderDirection) -> String {
+  case direction {
+    Ascending -> "ASC"
+    Descending -> "DESC"
+  }
+}
+
+/// Converts an [OrderDirection] into a module for code generation.
+pub fn order_direction_to_module(direction: OrderDirection) -> module.Module {
+  module.identifier.create("node")
+  |> module.binop.access(
+    module.identifier.create(case direction {
+      Ascending -> "Ascending"
+      Descending -> "Descending"
+    }),
+  )
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                           Operator                                            //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
 pub type Operator {
   Equal
@@ -28,45 +57,291 @@ pub type Operator {
   Or
 }
 
+/// Converts an [Operator] into its [String] representation in SurrealQL.
+pub fn operator_to_string(operator: Operator) -> String {
+  case operator {
+    Equal -> " = "
+    NotEqual -> " != "
+    GreaterThan -> " > "
+    LessThan -> " < "
+    GreaterThanOrEqual -> " >= "
+    LessThanOrEqual -> " <= "
+    Access -> "."
+    Inside -> " INSIDE "
+    RelationTo -> "->"
+    RelationFrom -> "<-"
+    RelationToFrom -> "<->"
+    Indexing -> "["
+    And -> " AND "
+    Or -> " OR "
+  }
+}
+
+/// Converts an [Operator] into a module for code generation.
+pub fn operator_to_module(operator: Operator) -> module.Module {
+  module.identifier.create("node")
+  |> module.binop.access(
+    module.identifier.create(case operator {
+      Equal -> "Equal"
+      NotEqual -> "NotEqual"
+      GreaterThan -> "GreaterThan"
+      LessThan -> "LessThan"
+      GreaterThanOrEqual -> "GreaterThanOrEqual"
+      LessThanOrEqual -> "LessThanOrEqual"
+      Access -> "Access"
+      Inside -> "Inside"
+      RelationTo -> "RelationTo"
+      RelationFrom -> "RelationFrom"
+      RelationToFrom -> "RelationToFrom"
+      Indexing -> "Indexing"
+      And -> "And"
+      Or -> "Or"
+    }),
+  )
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Select Field                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+/// Represents a field in a SELECT statement in SurrealQL.
 pub type SelectField {
   SelectField(field: Node, alias: Option(String), value: Bool)
 }
 
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Schema Type                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+/// The type of schema of a table in SurrealDB.
+pub type SchemaType {
+  Schemafull
+  Schemaless
+}
+
+/// Converts a [SchemaType] into its [String] representation in SurrealQL.
+pub fn schema_type_to_string(schema_type: SchemaType) -> String {
+  case schema_type {
+    Schemafull -> "SCHEMAFULL"
+    Schemaless -> "SCHEMALESS"
+  }
+}
+
+/// Converts a [SchemaType] into a module for code generation.
+pub fn schema_type_to_module(schema_type: SchemaType) -> module.Module {
+  module.identifier.create("node")
+  |> module.binop.access(
+    module.identifier.create(case schema_type {
+      Schemafull -> "Schemafull"
+      Schemaless -> "Schemaless"
+    }),
+  )
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Table Type                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type TableType {
+  NormalTable
+  RelationTable(in: String, out: String)
+}
+
+pub fn table_type_to_string(table_type: TableType) -> String {
+  case table_type {
+    NormalTable -> "NORMAL"
+    RelationTable(in:, out:) -> "RELATION IN " <> in <> " OUT " <> out
+  }
+}
+
+pub fn table_type_to_module(table_type: TableType) -> module.Module {
+  case table_type {
+    NormalTable ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("NormalTable"))
+    RelationTable(in:, out:) ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("RelationTable"))
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias("in", module.literal.string(in))
+      |> module.function_call.add_with_alias("out", module.literal.string(out))
+  }
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                        Operation Type                                         //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type OperationType {
+  OperationCreate
+  OperationSelect
+  OperationUpdate
+  OperationDelete
+}
+
+pub fn operation_type_to_string(operation_type: OperationType) -> String {
+  case operation_type {
+    OperationCreate -> "create"
+    OperationSelect -> "select"
+    OperationUpdate -> "update"
+    OperationDelete -> "delete"
+  }
+}
+
+pub fn operation_type_to_module(
+  operation_type: OperationType,
+) -> module.Module {
+  case operation_type {
+    OperationCreate ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("OperationCreate"))
+    OperationSelect ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("OperationSelect"))
+    OperationUpdate ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("OperationUpdate"))
+    OperationDelete ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("OperationDelete"))
+  }
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Permission                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type Permission {
+  PermissionFull
+  PermissionNone
+  PermissionForFull(targets: List(OperationType))
+  PermissionForNone(targets: List(OperationType))
+  PermissionForWhere(targets: List(OperationType), expression: Node)
+}
+
+pub fn permission_to_string(permission: Permission) -> String {
+  case permission {
+    PermissionFull -> "FULL"
+    PermissionNone -> "NONE"
+    PermissionForNone(targets:) ->
+      "FOR "
+      <> string.join(list.map(targets, operation_type_to_string), ", ")
+      <> " NONE"
+    PermissionForFull(targets:) ->
+      "FOR "
+      <> string.join(list.map(targets, operation_type_to_string), ", ")
+      <> " FULL"
+    PermissionForWhere(targets:, expression:) ->
+      "FOR "
+      <> string.join(list.map(targets, operation_type_to_string), ", ")
+      <> " WHERE "
+      <> to_string(expression)
+  }
+}
+
+pub fn permission_to_module(permission: Permission) -> module.Module {
+  case permission {
+    PermissionFull ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("PermissionFull"))
+    PermissionNone ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("PermissionNone"))
+    PermissionForNone(targets:) ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("PermissionForNone"))
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias(
+        "targets",
+        module.literal.list(list.map(targets, operation_type_to_module)),
+      )
+    PermissionForFull(targets:) ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("PermissionForFull"))
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias(
+        "targets",
+        module.literal.list(list.map(targets, operation_type_to_module)),
+      )
+    PermissionForWhere(targets:, expression:) ->
+      module.identifier.create("node")
+      |> module.binop.access(module.identifier.create("PermissionForWhere"))
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias(
+        "targets",
+        module.literal.list(list.map(targets, operation_type_to_module)),
+      )
+      |> module.function_call.add_with_alias(
+        "expression",
+        to_module(expression),
+      )
+  }
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                             Node                                              //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
 pub type Node {
-  DefineNormalTable(
+  /// https://surrealdb.com/docs/reference/query-language/statements/define/table
+  DefineTable(
     name: String,
-    schemafull: Bool,
-    permissions: Node,
+    schema: SchemaType,
+    type_: TableType,
+    permissions: List(Permission),
     as_: Option(Node),
   )
-  DefineRelationTable(
-    name: String,
-    schemafull: Bool,
-    permissions: Node,
-    in: String,
-    out: String,
-  )
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/define/field
   DefineField(
     name: Node,
     table: String,
-    type_: surreal_type.SurrealType,
+    type_: SurrealType,
     flexible: Bool,
     default: Option(Node),
     assert_: Option(Node),
-    permissions: Option(Node),
+    permissions: List(Permission),
   )
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/define/indexes
   DefineIndex(name: String, table: String, fields: List(String), unique: Bool)
+
   FunctionCall(lhs: Option(String), rhs: String, arguments: List(Node))
+
+  /// https://surrealdb.com/docs/learn/data-models/graph/recursive-traversals
   Self
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/none-and-null
   None
-  Full
+
+  /// https://surrealdb.com/docs/learn/data-models/graph/graph-traversal
   All
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/numbers
+  /// Different from Value(surreal_ql.Float | surreal_ql.Int) as it can be coerced to both types.
   Number(Float)
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/parameters
   Parameter(String)
+
+  /// Raw Identifier
   Identifier(String)
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/values
   Value(surreal_ql.SurrealQL)
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/objects
   Object(List(#(String, Node)))
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/arrays
   Array(List(Node))
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/select
   Select(
     fields: List(SelectField),
     only: Bool,
@@ -76,56 +351,48 @@ pub type Node {
     limit: Option(Node),
     group_all: Bool,
   )
-  If(condition: Node, then_: Node, else_: Node)
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/if-else
+  If(condition: Node, then_: Node, else_ifs: List(#(Node, Node)), else_: Node)
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/operators
   BinaryOperator(lhs: Node, operator: Operator, rhs: Node)
+
+  /// Node wrapped in ()
   WrappedNode(node: Node)
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/update
   Update(target: String, set: List(Node), where: Option(Node))
-  Create(target: String, set: List(Node))
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/create
+  Create(only: Bool, target: String, set: List(Node))
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/relate
   Relate(table: String, from: Node, to: Node, set: List(Node))
+
+  /// https://surrealdb.com/docs/reference/query-language/language-primitives/data-types/closures
   Lambda(parameters: List(String), body: Node)
+
+  /// https://surrealdb.com/docs/reference/query-language/statements/delete
   Delete(target: Node, where: Option(Node))
 }
 
 pub fn to_string(node: Node) -> String {
   case node {
-    DefineNormalTable(name:, schemafull:, permissions:, as_:) ->
+    DefineTable(name:, schema:, type_:, permissions:, as_:) ->
       "DEFINE TABLE "
       <> name
-      <> " TYPE NORMAL "
-      <> case schemafull {
-        True -> " SCHEMAFULL"
-        False -> " SCHEMALESS"
-      }
+      <> " TYPE "
+      <> table_type_to_string(type_)
+      <> " "
+      <> schema_type_to_string(schema)
       <> case as_ {
         option.Some(node) -> " AS " <> to_string(node)
         option.None -> ""
       }
       <> " PERMISSIONS "
-      <> case permissions {
-        None -> "NONE"
-        Full -> "FULL"
-        All -> "ALL"
-        _ -> ""
-      }
-    DefineRelationTable(name:, schemafull:, permissions:, in:, out:) ->
-      "DEFINE TABLE "
-      <> name
-      <> " TYPE RELATION "
-      <> " IN "
-      <> in
-      <> " OUT "
-      <> out
-      <> case schemafull {
-        True -> " SCHEMAFULL"
-        False -> " SCHEMALESS"
-      }
-      <> " PERMISSIONS "
-      <> case permissions {
-        None -> "NONE"
-        Full -> "FULL"
-        All -> "ALL"
-        _ -> ""
-      }
+      <> string.join(list.map(permissions, permission_to_string), " ")
+
     DefineField(
       name:,
       table:,
@@ -154,9 +421,12 @@ pub fn to_string(node: Node) -> String {
         option.None -> ""
       }
       <> case permissions {
-        option.Some(node) -> " PERMISSIONS " <> to_string(node)
-        option.None -> ""
+        [] -> ""
+        permissions ->
+          " PERMISSIONS "
+          <> string.join(list.map(permissions, permission_to_string), " ")
       }
+
     DefineIndex(name:, table:, fields:, unique:) ->
       "DEFINE INDEX "
       <> name
@@ -168,6 +438,7 @@ pub fn to_string(node: Node) -> String {
         True -> " UNIQUE"
         False -> ""
       }
+
     FunctionCall(lhs:, rhs:, arguments:) ->
       case lhs {
         option.Some(lhs) -> lhs <> "::"
@@ -177,14 +448,21 @@ pub fn to_string(node: Node) -> String {
       <> "("
       <> string.join(list.map(arguments, to_string), ", ")
       <> ")"
+
     Self -> "@"
+
     None -> "NONE"
-    Full -> "FULL"
+
     All -> "*"
+
     Number(value) -> float.to_string(value)
+
     Parameter(name) -> "$" <> name
+
     Identifier(name) -> name
+
     Value(value) -> surreal_ql.to_string(value)
+
     Object(fields) -> {
       let field_strings =
         fields
@@ -195,6 +473,7 @@ pub fn to_string(node: Node) -> String {
         |> string.join(", ")
       "{" <> field_strings <> "}"
     }
+
     Array(fields) -> {
       let field_strings =
         fields
@@ -202,6 +481,7 @@ pub fn to_string(node: Node) -> String {
         |> string.join(", ")
       "[" <> field_strings <> "]"
     }
+
     Select(fields:, only:, table:, where:, order:, limit:, group_all:) ->
       "SELECT "
       <> string.join(
@@ -230,12 +510,7 @@ pub fn to_string(node: Node) -> String {
           <> string.join(
             list.map(order, fn(entry) {
               let #(field, direction) = entry
-              to_string(field)
-              <> " "
-              <> case direction {
-                Ascending -> "ASC"
-                Descending -> "DESC"
-              }
+              to_string(field) <> " " <> order_direction_to_string(direction)
             }),
             ", ",
           )
@@ -249,38 +524,31 @@ pub fn to_string(node: Node) -> String {
         option.Some(node) -> " LIMIT " <> to_string(node)
         option.None -> ""
       }
+
     BinaryOperator(lhs:, operator:, rhs:) ->
       to_string(lhs)
-      <> case operator {
-        Equal -> " = "
-        NotEqual -> " != "
-        GreaterThan -> " > "
-        LessThan -> " < "
-        GreaterThanOrEqual -> " >= "
-        LessThanOrEqual -> " <= "
-        Access -> "."
-        Inside -> " INSIDE "
-        RelationTo -> "->"
-        RelationFrom -> "<-"
-        RelationToFrom -> "<->"
-        Indexing -> "["
-        And -> " AND "
-        Or -> " OR "
-      }
+      <> operator_to_string(operator)
       <> to_string(rhs)
       <> case operator {
         Indexing -> "]"
         _ -> ""
       }
-    If(condition:, then_:, else_:) ->
+
+    If(condition:, then_:, else_ifs:, else_:) ->
       "IF "
       <> to_string(condition)
       <> " THEN "
       <> to_string(then_)
+      <> list.fold(else_ifs, "", fn(acc, entry) {
+        let #(cond, body) = entry
+        acc <> " ELSE IF " <> to_string(cond) <> " THEN " <> to_string(body)
+      })
       <> " ELSE "
       <> to_string(else_)
       <> " END"
+
     WrappedNode(node) -> "(" <> to_string(node) <> ")"
+
     Update(target:, set:, where:) ->
       "UPDATE "
       <> target
@@ -290,11 +558,17 @@ pub fn to_string(node: Node) -> String {
         option.Some(node) -> " WHERE " <> to_string(node)
         option.None -> ""
       }
-    Create(target:, set:) ->
+
+    Create(only:, target:, set:) ->
       "CREATE "
+      <> case only {
+        True -> "ONLY "
+        False -> ""
+      }
       <> target
       <> " SET "
       <> string.join(list.map(set, to_string), ", ")
+
     Relate(table:, from:, to:, set:) ->
       "RELATE "
       <> to_string(from)
@@ -306,11 +580,13 @@ pub fn to_string(node: Node) -> String {
         [] -> ""
         values -> " SET " <> string.join(list.map(values, to_string), ", ")
       }
+
     Lambda(parameters:, body:) ->
       "|"
       <> list.map(parameters, fn(p) { "$" <> p }) |> string.join(", ")
       <> "| "
       <> to_string(body)
+
     Delete(target:, where:) ->
       "DELETE "
       <> to_string(target)
@@ -411,8 +687,7 @@ pub fn replace_variables(
   values: List(#(String, surreal_ql.SurrealQL)),
 ) -> Node {
   case node {
-    DefineNormalTable(..) -> node
-    DefineRelationTable(..) -> node
+    DefineTable(..) -> node
     DefineField(..) -> node
     DefineIndex(..) -> node
     FunctionCall(lhs:, rhs:, arguments:) ->
@@ -423,7 +698,6 @@ pub fn replace_variables(
       )
     Self -> node
     None -> node
-    Full -> node
     All -> node
     Number(_) -> node
     Parameter(parameter) ->
@@ -456,10 +730,15 @@ pub fn replace_variables(
         operator: operator,
         rhs: replace_variables(rhs, values),
       )
-    If(condition:, then_:, else_:) ->
+    If(condition:, then_:, else_ifs:, else_:) ->
       If(
         condition: replace_variables(condition, values),
         then_: replace_variables(then_, values),
+        else_ifs: list.map(else_ifs, fn(entry) {
+          entry
+          |> pair.map_first(replace_variables(_, values))
+          |> pair.map_second(replace_variables(_, values))
+        }),
         else_: replace_variables(else_, values),
       )
     WrappedNode(node) -> WrappedNode(replace_variables(node, values))
@@ -469,8 +748,8 @@ pub fn replace_variables(
         set: list.map(set, replace_variables(_, values)),
         where: option.map(where, replace_variables(_, values)),
       )
-    Create(target:, set:) ->
-      Create(target: target, set: list.map(set, replace_variables(_, values)))
+    Create(only:, target:, set:) ->
+      Create(only:, target:, set: list.map(set, replace_variables(_, values)))
     Relate(from:, to:, set:, ..) ->
       Relate(
         ..node,
@@ -605,10 +884,10 @@ fn option_of(
 
 pub fn to_module(node: Node) -> module.Module {
   case node {
-    DefineNormalTable(name:, schemafull:, permissions:, as_:) ->
+    DefineTable(name:, schema:, type_:, permissions:, as_:) ->
       module.binop.access(
         module.identifier.create("node"),
-        module.identifier.create("DefineNormalTable"),
+        module.identifier.create("DefineTable"),
       )
       |> module.function_call.create()
       |> module.function_call.add_with_alias(
@@ -616,35 +895,18 @@ pub fn to_module(node: Node) -> module.Module {
         module.literal.string(name),
       )
       |> module.function_call.add_with_alias(
-        "schemafull",
-        module.literal.bool(schemafull),
+        "schema",
+        schema_type_to_module(schema),
+      )
+      |> module.function_call.add_with_alias(
+        "type_",
+        table_type_to_module(type_),
       )
       |> module.function_call.add_with_alias(
         "permissions",
-        to_module(permissions),
+        module.literal.list(list.map(permissions, permission_to_module)),
       )
       |> module.function_call.add_with_alias("as_", option_of(as_, to_module))
-      |> module.add_import(["suweal", "node"])
-    DefineRelationTable(name:, schemafull:, permissions:, in:, out:) ->
-      module.binop.access(
-        module.identifier.create("node"),
-        module.identifier.create("DefineRelationTable"),
-      )
-      |> module.function_call.create()
-      |> module.function_call.add_with_alias(
-        "name",
-        module.literal.string(name),
-      )
-      |> module.function_call.add_with_alias(
-        "schemafull",
-        module.literal.bool(schemafull),
-      )
-      |> module.function_call.add_with_alias(
-        "permissions",
-        to_module(permissions),
-      )
-      |> module.function_call.add_with_alias("in", module.literal.string(in))
-      |> module.function_call.add_with_alias("out", module.literal.string(out))
       |> module.add_import(["suweal", "node"])
     DefineField(
       name:,
@@ -679,7 +941,7 @@ pub fn to_module(node: Node) -> module.Module {
       )
       |> module.function_call.add_with_alias(
         "permissions",
-        option_of(permissions, to_module),
+        module.literal.list(list.map(permissions, permission_to_module)),
       )
       |> module.function_call.add_with_alias(
         "flexible",
@@ -735,12 +997,6 @@ pub fn to_module(node: Node) -> module.Module {
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("None"),
-      )
-      |> module.add_import(["suweal", "node"])
-    Full ->
-      module.binop.access(
-        module.identifier.create("node"),
-        module.identifier.create("Full"),
       )
       |> module.add_import(["suweal", "node"])
     All ->
@@ -853,13 +1109,7 @@ pub fn to_module(node: Node) -> module.Module {
               let #(field, direction) = entry
               module.literal.tuple([
                 to_module(field),
-                module.binop.access(
-                  module.identifier.create("node"),
-                  module.identifier.create(case direction {
-                    Ascending -> "Ascending"
-                    Descending -> "Descending"
-                  }),
-                ),
+                order_direction_to_module(direction),
               ])
             }),
           )
@@ -883,29 +1133,11 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.function_call.add_with_alias("lhs", to_module(lhs))
       |> module.function_call.add_with_alias(
         "operator",
-        module.binop.access(
-          module.identifier.create("node"),
-          module.identifier.create(case operator {
-            Equal -> "Equal"
-            NotEqual -> "NotEqual"
-            GreaterThan -> "GreaterThan"
-            LessThan -> "LessThan"
-            GreaterThanOrEqual -> "GreaterThanOrEqual"
-            LessThanOrEqual -> "LessThanOrEqual"
-            Access -> "Access"
-            Inside -> "Inside"
-            RelationTo -> "RelationTo"
-            RelationFrom -> "RelationFrom"
-            RelationToFrom -> "RelationToFrom"
-            Indexing -> "Indexing"
-            And -> "And"
-            Or -> "Or"
-          }),
-        ),
+        operator_to_module(operator),
       )
       |> module.function_call.add_with_alias("rhs", to_module(rhs))
       |> module.add_import(["suweal", "node"])
-    If(condition:, then_:, else_:) ->
+    If(condition:, then_:, else_ifs:, else_:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("If"),
@@ -913,6 +1145,18 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.function_call.create()
       |> module.function_call.add_with_alias("condition", to_module(condition))
       |> module.function_call.add_with_alias("then_", to_module(then_))
+      |> module.function_call.add_with_alias(
+        "else_ifs",
+        module.literal.list(
+          list.map(else_ifs, fn(entry) {
+            let #(cond, body) = entry
+            module.literal.tuple([
+              to_module(cond),
+              to_module(body),
+            ])
+          }),
+        ),
+      )
       |> module.function_call.add_with_alias("else_", to_module(else_))
       |> module.add_import(["suweal", "node"])
     WrappedNode(node) ->
@@ -942,12 +1186,13 @@ pub fn to_module(node: Node) -> module.Module {
         option_of(where, to_module),
       )
       |> module.add_import(["suweal", "node"])
-    Create(target:, set:) ->
+    Create(only:, target:, set:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("Create"),
       )
       |> module.function_call.create()
+      |> module.function_call.add_with_alias("only", module.literal.bool(only))
       |> module.function_call.add_with_alias(
         "target",
         module.literal.string(target),
