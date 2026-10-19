@@ -62,7 +62,7 @@ pub fn to_gleam_type(kind: SurrealType) -> module.Module {
       |> module.function_call.add(module.identifier.create(name))
       |> module.add_import(["suweal", "record"])
     String -> module.types.string()
-    Bool -> module.identifier.create("Bool")
+    Bool -> module.types.bool()
     Option(inner) ->
       module.binop.access(
         module.identifier.create("option"),
