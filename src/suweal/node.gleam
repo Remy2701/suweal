@@ -362,7 +362,7 @@ pub type Node {
   WrappedNode(node: Node)
 
   /// https://surrealdb.com/docs/reference/query-language/statements/update
-  Update(target: String, set: List(Node), where: Option(Node))
+  Update(only: Bool, target: String, set: List(Node), where: Option(Node))
 
   /// https://surrealdb.com/docs/reference/query-language/statements/create
   Create(only: Bool, target: String, set: List(Node))
@@ -374,7 +374,7 @@ pub type Node {
   Lambda(parameters: List(String), body: Node)
 
   /// https://surrealdb.com/docs/reference/query-language/statements/delete
-  Delete(target: Node, where: Option(Node))
+  Delete(only: Bool, target: Node, where: Option(Node))
 }
 
 pub fn to_string(node: Node) -> String {
@@ -549,8 +549,12 @@ pub fn to_string(node: Node) -> String {
 
     WrappedNode(node) -> "(" <> to_string(node) <> ")"
 
-    Update(target:, set:, where:) ->
+    Update(only:, target:, set:, where:) ->
       "UPDATE "
+      <> case only {
+        True -> "ONLY "
+        False -> ""
+      }
       <> target
       <> " SET "
       <> string.join(list.map(set, to_string), ", ")
@@ -587,8 +591,12 @@ pub fn to_string(node: Node) -> String {
       <> "| "
       <> to_string(body)
 
-    Delete(target:, where:) ->
+    Delete(only:, target:, where:) ->
       "DELETE "
+      <> case only {
+        True -> "ONLY "
+        False -> ""
+      }
       <> to_string(target)
       <> case where {
         option.Some(node) -> " WHERE " <> to_string(node)
@@ -742,9 +750,9 @@ pub fn replace_variables(
         else_: replace_variables(else_, values),
       )
     WrappedNode(node) -> WrappedNode(replace_variables(node, values))
-    Update(target:, set:, where:) ->
+    Update(set:, where:, ..) ->
       Update(
-        target: target,
+        ..node,
         set: list.map(set, replace_variables(_, values)),
         where: option.map(where, replace_variables(_, values)),
       )
@@ -766,8 +774,9 @@ pub fn replace_variables(
             |> list.filter(fn(entry) { !list.contains(parameters, entry.0) }),
         ),
       )
-    Delete(target:, where:) ->
+    Delete(target:, where:, ..) ->
       Delete(
+        ..node,
         target: replace_variables(target, values),
         where: option.map(where, replace_variables(_, values)),
       )
@@ -1167,12 +1176,13 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.function_call.create()
       |> module.function_call.add_with_alias("node", to_module(node))
       |> module.add_import(["suweal", "node"])
-    Update(target:, set:, where:) ->
+    Update(only:, target:, set:, where:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("Update"),
       )
       |> module.function_call.create()
+      |> module.function_call.add_with_alias("only", module.literal.bool(only))
       |> module.function_call.add_with_alias(
         "target",
         module.literal.string(target),
@@ -1231,12 +1241,13 @@ pub fn to_module(node: Node) -> module.Module {
       )
       |> module.function_call.add_with_alias("body", to_module(body))
       |> module.add_import(["suweal", "node"])
-    Delete(target:, where:) ->
+    Delete(only:, target:, where:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("Delete"),
       )
       |> module.function_call.create()
+      |> module.function_call.add_with_alias("only", module.literal.bool(only))
       |> module.function_call.add_with_alias("target", to_module(target))
       |> module.function_call.add_with_alias(
         "where",
