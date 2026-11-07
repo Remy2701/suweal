@@ -83,10 +83,10 @@ pub fn to_gleam_type(kind: SurrealType) -> module.Module {
       |> module.add_import(["suweal", "point"])
     Object ->
       module.binop.access(
-        module.identifier.create("json_value"),
-        module.identifier.create("JsonValue"),
+        module.identifier.create("value"),
+        module.identifier.create("Value"),
       )
-      |> module.add_import(["json_value"])
+      |> module.add_import(["pont", "value"])
     None -> module.identifier.create("Nil")
   }
 }

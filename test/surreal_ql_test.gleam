@@ -1,7 +1,6 @@
-import gleam/dict
 import gleam/json
 import gleeunit/should
-import json_value
+import pont/value
 import suweal/surreal_ql
 
 //-----------------------------------------------------------------------------------------------//
@@ -161,43 +160,43 @@ pub fn surreal_ql_array_to_string_test() {
 //                                        From JSON Value                                        //
 //-----------------------------------------------------------------------------------------------//
 
-pub fn surreal_ql_null_from_json_test() {
-  json_value.Null
-  |> surreal_ql.from_json_value
+pub fn surreal_ql_null_from_value_test() {
+  value.Null
+  |> surreal_ql.from_value
   |> should.equal(surreal_ql.Null)
 }
 
 pub fn surreal_ql_string_from_json_test() {
-  json_value.String("Hello world!")
-  |> surreal_ql.from_json_value
+  value.String("Hello world!")
+  |> surreal_ql.from_value
   |> should.equal(surreal_ql.String("Hello world!"))
 }
 
 pub fn surreal_ql_int_from_json_test() {
-  json_value.Int(42)
-  |> surreal_ql.from_json_value
+  value.Integer(42)
+  |> surreal_ql.from_value
   |> should.equal(surreal_ql.Int(42))
 }
 
 pub fn surreal_ql_float_from_json_test() {
-  json_value.Float(42.0)
-  |> surreal_ql.from_json_value
+  value.Float(42.0)
+  |> surreal_ql.from_value
   |> should.equal(surreal_ql.Float(42.0))
 }
 
 pub fn surreal_ql_bool_from_json_test() {
-  json_value.Bool(False)
-  |> surreal_ql.from_json_value
+  value.Boolean(False)
+  |> surreal_ql.from_value
   |> should.equal(surreal_ql.Bool(False))
 }
 
 pub fn surreal_ql_array_from_json_test() {
-  json_value.Array([
-    json_value.String("a"),
-    json_value.String("b"),
-    json_value.String("c"),
+  value.List([
+    value.String("a"),
+    value.String("b"),
+    value.String("c"),
   ])
-  |> surreal_ql.from_json_value
+  |> surreal_ql.from_value
   |> should.equal(
     surreal_ql.Array([
       surreal_ql.String("a"),
@@ -208,13 +207,11 @@ pub fn surreal_ql_array_from_json_test() {
 }
 
 pub fn surreal_ql_object_from_json_test() {
-  json_value.Object(
-    dict.from_list([
-      #("key1", json_value.String("value1")),
-      #("key2", json_value.Int(42)),
-    ]),
-  )
-  |> surreal_ql.from_json_value
+  value.Object([
+    #("key1", value.String("value1")),
+    #("key2", value.Integer(42)),
+  ])
+  |> surreal_ql.from_value
   |> should.equal(
     surreal_ql.Object([
       #("key1", surreal_ql.String("value1")),

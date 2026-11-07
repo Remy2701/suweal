@@ -1,4 +1,3 @@
-import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/json
@@ -6,7 +5,7 @@ import gleam/list
 import gleam/option
 import gleam/pair
 import gleam/string
-import json_value
+import pont/value
 
 /// The values for Surreal Query Language (SurrealQL)
 pub type SurrealQL {
@@ -103,18 +102,17 @@ pub fn to_json(value: SurrealQL) -> json.Json {
   }
 }
 
-/// Converts a given [JsonValue] into a [SurrealQL] value.
-pub fn from_json_value(value: json_value.JsonValue) -> SurrealQL {
+/// Converts a given [Value] into a [SurrealQL] value.
+pub fn from_value(value: value.Value) -> SurrealQL {
   case value {
-    json_value.Null -> Null
-    json_value.String(inner) -> String(inner)
-    json_value.Int(inner) -> Int(inner)
-    json_value.Bool(inner) -> Bool(inner)
-    json_value.Float(inner) -> Float(inner)
-    json_value.Array(inner) -> Array(list.map(inner, from_json_value))
-    json_value.Object(inner) ->
-      dict.map_values(inner, fn(_, value) { from_json_value(value) })
-      |> dict.to_list
+    value.Null -> Null
+    value.String(inner) -> String(inner)
+    value.Integer(inner) -> Int(inner)
+    value.Boolean(inner) -> Bool(inner)
+    value.Float(inner) -> Float(inner)
+    value.List(inner) -> Array(list.map(inner, from_value))
+    value.Object(inner) ->
+      list.map(inner, pair.map_second(_, from_value))
       |> Object
   }
 }
