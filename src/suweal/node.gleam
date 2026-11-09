@@ -406,11 +406,11 @@ pub fn to_string(node: Node) -> String {
       <> to_string(name)
       <> " ON "
       <> table
+      <> " TYPE "
       <> case flexible {
         True -> " FLEXIBLE"
         False -> ""
       }
-      <> " TYPE "
       <> surreal_type.to_string(type_)
       <> case default {
         option.Some(node) -> " DEFAULT " <> to_string(node)
