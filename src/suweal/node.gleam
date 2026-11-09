@@ -408,7 +408,7 @@ pub fn to_string(node: Node) -> String {
       <> table
       <> " TYPE "
       <> case flexible {
-        True -> " FLEXIBLE"
+        True -> "FLEXIBLE "
         False -> ""
       }
       <> surreal_type.to_string(type_)
