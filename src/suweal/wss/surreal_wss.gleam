@@ -8,18 +8,21 @@ import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option
+import gleam/otp/actor
 import gleam/result
 import gleam/string
 import suweal
 import suweal/surreal_ql
 
+/// A WebSocket connection to a SurrealDB instance.
 pub type SurrealWssConnection {
   SurrealWssConnection(
-    subject: process.Subject(collie.WebsocketMessage(SurrealWssMessage)),
+    subject: process.Subject(SurrealWssMessage),
     connection: suweal.Connection,
   )
 }
 
+/// Returns a new connection with the specified namespace.
 pub fn with_namespace(
   connection: SurrealWssConnection,
   namespace: String,
@@ -30,6 +33,7 @@ pub fn with_namespace(
   )
 }
 
+/// Returns a new connection with the specified database.
 pub fn with_database(
   connection: SurrealWssConnection,
   database: String,
@@ -40,40 +44,37 @@ pub fn with_database(
   )
 }
 
+/// Represents errors that can occur when interacting with a SurrealDB WebSocket connection.
 pub type SurrealWssError {
   InvalidUrl
   FailedToConnect
 }
 
+/// The type alias for the receiver subject used in SurrealDB WebSocket messages.
+pub type ReceiverSubject =
+  process.Subject(SurrealWssResponse(dynamic.Dynamic))
+
+/// The (user) message that can be sent over a SurrealDB WebSocket connection.
 pub type SurrealWssMessage {
-  Query(
-    query: String,
-    receiver: process.Subject(SurrealWssResponse(dynamic.Dynamic)),
-  )
+  Query(query: String, receiver: ReceiverSubject)
   Signup(
     collection: String,
     fields: List(#(String, surreal_ql.SurrealQL)),
-    receiver: process.Subject(SurrealWssResponse(dynamic.Dynamic)),
+    receiver: ReceiverSubject,
   )
   Signin(
     collection: String,
     fields: List(#(String, surreal_ql.SurrealQL)),
-    receiver: process.Subject(SurrealWssResponse(dynamic.Dynamic)),
+    receiver: ReceiverSubject,
   )
-  Use(
-    namespace: String,
-    database: String,
-    receiver: process.Subject(SurrealWssResponse(dynamic.Dynamic)),
-  )
+  Use(namespace: String, database: String, receiver: ReceiverSubject)
 }
 
+/// The internal state of a SurrealDB WebSocket connection.
 type SurrealWssState {
   SurrealWssState(
     connection: suweal.Connection,
-    receivers: dict.Dict(
-      Int,
-      process.Subject(SurrealWssResponse(dynamic.Dynamic)),
-    ),
+    receivers: dict.Dict(Int, ReceiverSubject),
     last_id: Int,
     pending_use: option.Option(#(String, String)),
   )
@@ -150,7 +151,7 @@ pub fn send(
   connection: SurrealWssConnection,
   message: SurrealWssMessage,
 ) -> Nil {
-  process.send(connection.subject, collie.to_user_message(message))
+  process.send(connection.subject, message)
 }
 
 pub fn send_query(
@@ -185,7 +186,7 @@ pub type SurrealWssConnectionBuilder {
     name: option.Option(
       process.Name(collie.WebsocketMessage(SurrealWssMessage)),
     ),
-    on_close: fn(collie.CloseReason) -> Nil,
+    on_close: fn(collie.DisconnectReason) -> Nil,
   )
 }
 
@@ -202,7 +203,7 @@ pub fn named(
 
 pub fn on_close(
   builder: SurrealWssConnectionBuilder,
-  on_close: fn(collie.CloseReason) -> Nil,
+  on_close: fn(collie.DisconnectReason) -> Nil,
 ) -> SurrealWssConnectionBuilder {
   SurrealWssConnectionBuilder(..builder, on_close: on_close)
 }
@@ -243,12 +244,24 @@ pub fn start(
     |> result.map_error(fn(_) { FailedToConnect }),
   )
 
+  use forwarder <- result.try(
+    actor.new_with_initialiser(100, fn(self) {
+      client.data |> actor.initialised() |> actor.returning(self) |> Ok
+    })
+    |> actor.on_message(fn(state, message: SurrealWssMessage) {
+      process.send(state, collie.to_user_message(message))
+      actor.continue(state)
+    })
+    |> actor.start()
+    |> result.map_error(fn(_) { FailedToConnect }),
+  )
+
   let credentials = suweal.decode_credentials(builder.connection)
   case credentials {
     Ok(#(username, password)) -> {
       let subject = process.new_subject()
       send_signin(
-        SurrealWssConnection(client.data, builder.connection),
+        SurrealWssConnection(forwarder.data, builder.connection),
         "",
         [
           #("user", surreal_ql.String(username)),
@@ -267,7 +280,7 @@ pub fn start(
     }
   }
 
-  Ok(SurrealWssConnection(client.data, builder.connection))
+  Ok(SurrealWssConnection(forwarder.data, builder.connection))
 }
 
 fn handle_message(
