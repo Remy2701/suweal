@@ -1,4 +1,5 @@
 import gleam/json
+import gleam/option
 import gleeunit/should
 import pont/value
 import suweal/surreal_ql
@@ -96,6 +97,13 @@ pub fn surreal_ql_string_to_string_test() {
   |> should.equal("\"Hello world!\"")
 }
 
+pub fn surreal_ql_string_with_escape_to_string_test() {
+  "\\Hello \"world\"!"
+  |> surreal_ql.String
+  |> surreal_ql.to_string
+  |> should.equal("\"\\\\Hello \\\"world\\\"!\"")
+}
+
 pub fn surreal_ql_int_to_string_test() {
   42
   |> surreal_ql.Int
@@ -115,6 +123,11 @@ pub fn surreal_ql_bool_to_string_test() {
   |> surreal_ql.Bool
   |> surreal_ql.to_string
   |> should.equal("false")
+
+  True
+  |> surreal_ql.Bool
+  |> surreal_ql.to_string
+  |> should.equal("true")
 }
 
 pub fn surreal_ql_datetime_to_string_test() {
@@ -218,4 +231,27 @@ pub fn surreal_ql_object_from_json_test() {
       #("key2", surreal_ql.Int(42)),
     ]),
   )
+}
+
+//-----------------------------------------------------------------------------------------------//
+//                                           Behavior                                            //
+//-----------------------------------------------------------------------------------------------//
+
+pub fn verify_identity_array_test() {
+  surreal_ql.array(["a", "b", "c"], surreal_ql.String)
+  |> should.equal(
+    surreal_ql.Array([
+      surreal_ql.String("a"),
+      surreal_ql.String("b"),
+      surreal_ql.String("c"),
+    ]),
+  )
+}
+
+pub fn verify_identity_nullable_test() {
+  surreal_ql.nullable(option.None, surreal_ql.String)
+  |> should.equal(surreal_ql.Null)
+
+  surreal_ql.nullable(option.Some("a"), surreal_ql.String)
+  |> should.equal(surreal_ql.String("a"))
 }
