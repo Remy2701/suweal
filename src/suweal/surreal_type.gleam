@@ -147,7 +147,6 @@ pub fn to_gleam_module(
         module.identifier.create("Option"),
       ))
       |> module.function_call.add(to_gleam_module(inner, linked_enum))
-      |> module.add_import(["suweal", "identifier"])
       |> module.add_import(["gleam", "option"])
     Array(inner) ->
       module.function_call.create(module.identifier.create("List"))
@@ -246,13 +245,21 @@ pub fn value_to_gleam_module(
             module.identifier.create("String"),
           ))
           |> module.function_call.add(
-            module.function_call.create(module.binop.access(
-              module.identifier.create(id_case.namespace_only(enum)),
-              module.identifier.create(
-                id_case.string_to_snake_case(id_case.without_namespace(enum))
-                <> "_to_string",
-              ),
-            ))
+            module.function_call.create(case id_case.namespace_only(enum) {
+              "" ->
+                module.identifier.create(
+                  id_case.string_to_snake_case(id_case.without_namespace(enum))
+                  <> "_to_string",
+                )
+              value ->
+                module.binop.access(
+                  module.identifier.create(value),
+                  module.identifier.create(
+                    id_case.string_to_snake_case(id_case.without_namespace(enum))
+                    <> "_to_string",
+                  ),
+                )
+            })
             |> module.function_call.add(module.identifier.create(name)),
           )
           |> module.add_import(["suweal", "surreal_ql"])
