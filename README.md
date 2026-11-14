@@ -9,7 +9,7 @@ Suweal is a library for interacting with [SurrealDB](https://surrealdb.com/). Th
 
 ```toml
 [dependencies]
-suweal = ">= 0.5.0 and < 1.0.0"
+suweal = ">= 0.6.0 and < 1.0.0"
 ```
 ```gleam
 import suweal
