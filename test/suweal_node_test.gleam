@@ -206,3 +206,41 @@ pub fn define_field_with_assert_to_string_test() {
     "DEFINE FIELD name ON user TYPE string ASSERT $value != NONE PERMISSIONS FULL",
   )
 }
+
+pub fn define_flexible_object_field_to_string_test() {
+  node.DefineField(
+    name: node.Identifier("name"),
+    strategy: node.DefineFieldRegular,
+    table: "user",
+    type_: surreal_type.Object,
+    default: option.None,
+    assert_: option.None,
+    permissions: [node.PermissionFull],
+    flexible: True,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE FIELD name ON user TYPE object FLEXIBLE PERMISSIONS FULL",
+  )
+}
+
+pub fn define_nested_object_field_to_string_test() {
+  node.DefineField(
+    name: node.BinaryOperator(
+      node.Identifier("settings"),
+      node.Access,
+      node.Identifier("notification"),
+    ),
+    strategy: node.DefineFieldRegular,
+    table: "user",
+    type_: surreal_type.Bool,
+    default: option.None,
+    assert_: option.None,
+    permissions: [node.PermissionFull],
+    flexible: False,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE FIELD settings.notification ON user TYPE bool PERMISSIONS FULL",
+  )
+}
