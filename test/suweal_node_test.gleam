@@ -11,6 +11,7 @@ import suweal/surreal_type
 pub fn define_simple_table_to_string_test() {
   node.DefineTable(
     name: "user",
+    strategy: node.DefineTableRegular,
     schema: node.Schemafull,
     type_: node.NormalTable,
     permissions: [node.PermissionFull],
@@ -20,9 +21,40 @@ pub fn define_simple_table_to_string_test() {
   |> should.equal("DEFINE TABLE user TYPE NORMAL SCHEMAFULL PERMISSIONS FULL")
 }
 
+pub fn define_simple_table_overwrite_to_string_test() {
+  node.DefineTable(
+    name: "user",
+    strategy: node.DefineTableOverwrite,
+    schema: node.Schemafull,
+    type_: node.NormalTable,
+    permissions: [node.PermissionFull],
+    as_: option.None,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE TABLE OVERWRITE user TYPE NORMAL SCHEMAFULL PERMISSIONS FULL",
+  )
+}
+
+pub fn define_simple_table_if_not_exists_to_string_test() {
+  node.DefineTable(
+    name: "user",
+    strategy: node.DefineTableIfNotExists,
+    schema: node.Schemafull,
+    type_: node.NormalTable,
+    permissions: [node.PermissionFull],
+    as_: option.None,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE TABLE IF NOT EXISTS user TYPE NORMAL SCHEMAFULL PERMISSIONS FULL",
+  )
+}
+
 pub fn define_relation_table_to_string_test() {
   node.DefineTable(
     name: "user",
+    strategy: node.DefineTableRegular,
     schema: node.Schemafull,
     type_: node.RelationTable(in: "user", out: "profile"),
     permissions: [node.PermissionNone],
@@ -37,6 +69,7 @@ pub fn define_relation_table_to_string_test() {
 pub fn define_table_with_query_to_string_test() {
   node.DefineTable(
     name: "user",
+    strategy: node.DefineTableRegular,
     schema: node.Schemafull,
     type_: node.NormalTable,
     permissions: [
@@ -90,6 +123,7 @@ pub fn define_table_with_query_to_string_test() {
 pub fn define_simple_field_to_string_test() {
   node.DefineField(
     name: node.Identifier("name"),
+    strategy: node.DefineFieldRegular,
     table: "user",
     type_: surreal_type.String,
     default: option.None,
@@ -101,9 +135,44 @@ pub fn define_simple_field_to_string_test() {
   |> should.equal("DEFINE FIELD name ON user TYPE string PERMISSIONS FULL")
 }
 
+pub fn define_simple_overwrite_field_to_string_test() {
+  node.DefineField(
+    name: node.Identifier("name"),
+    strategy: node.DefineFieldOverwrite,
+    table: "user",
+    type_: surreal_type.String,
+    default: option.None,
+    assert_: option.None,
+    permissions: [node.PermissionFull],
+    flexible: False,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE FIELD OVERWRITE name ON user TYPE string PERMISSIONS FULL",
+  )
+}
+
+pub fn define_simple_if_not_exists_field_to_string_test() {
+  node.DefineField(
+    name: node.Identifier("name"),
+    strategy: node.DefineFieldIfNotExists,
+    table: "user",
+    type_: surreal_type.String,
+    default: option.None,
+    assert_: option.None,
+    permissions: [node.PermissionFull],
+    flexible: False,
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE FIELD IF NOT EXISTS name ON user TYPE string PERMISSIONS FULL",
+  )
+}
+
 pub fn define_field_with_default_to_string_test() {
   node.DefineField(
     name: node.Identifier("name"),
+    strategy: node.DefineFieldRegular,
     table: "user",
     type_: surreal_type.String,
     default: option.Some(node.Value(surreal_ql.String("unknown"))),
@@ -120,6 +189,7 @@ pub fn define_field_with_default_to_string_test() {
 pub fn define_field_with_assert_to_string_test() {
   node.DefineField(
     name: node.Identifier("name"),
+    strategy: node.DefineFieldRegular,
     table: "user",
     type_: surreal_type.String,
     default: option.None,

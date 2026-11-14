@@ -284,6 +284,46 @@ pub fn permission_to_module(permission: Permission) -> module.Module {
 }
 
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Field Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineFieldStrategy {
+  DefineFieldIfNotExists
+  DefineFieldOverwrite
+  DefineFieldRegular
+}
+
+pub fn define_field_strategy_to_module(strategy: DefineFieldStrategy) {
+  module.identifier.create("node")
+  |> module.binop.access(case strategy {
+    DefineFieldIfNotExists -> module.identifier.create("DefineFieldIfNotExists")
+    DefineFieldOverwrite -> module.identifier.create("DefineFieldOverwrite")
+    DefineFieldRegular -> module.identifier.create("DefineFieldRegular")
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Table Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineTableStrategy {
+  DefineTableIfNotExists
+  DefineTableOverwrite
+  DefineTableRegular
+}
+
+pub fn define_table_strategy_to_module(strategy: DefineTableStrategy) {
+  module.identifier.create("node")
+  |> module.binop.access(case strategy {
+    DefineTableIfNotExists -> module.identifier.create("DefineTableIfNotExists")
+    DefineTableOverwrite -> module.identifier.create("DefineTableOverwrite")
+    DefineTableRegular -> module.identifier.create("DefineTableRegular")
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 //                                             Node                                              //
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
@@ -291,6 +331,7 @@ pub type Node {
   /// https://surrealdb.com/docs/reference/query-language/statements/define/table
   DefineTable(
     name: String,
+    strategy: DefineTableStrategy,
     schema: SchemaType,
     type_: TableType,
     permissions: List(Permission),
@@ -300,6 +341,7 @@ pub type Node {
   /// https://surrealdb.com/docs/reference/query-language/statements/define/field
   DefineField(
     name: Node,
+    strategy: DefineFieldStrategy,
     table: String,
     type_: SurrealType,
     flexible: Bool,
@@ -379,8 +421,13 @@ pub type Node {
 
 pub fn to_string(node: Node) -> String {
   case node {
-    DefineTable(name:, schema:, type_:, permissions:, as_:) ->
+    DefineTable(name:, strategy:, schema:, type_:, permissions:, as_:) ->
       "DEFINE TABLE "
+      <> case strategy {
+        DefineTableIfNotExists -> "IF NOT EXISTS "
+        DefineTableOverwrite -> "OVERWRITE "
+        DefineTableRegular -> ""
+      }
       <> name
       <> " TYPE "
       <> table_type_to_string(type_)
@@ -395,6 +442,7 @@ pub fn to_string(node: Node) -> String {
 
     DefineField(
       name:,
+      strategy:,
       table:,
       type_:,
       default:,
@@ -403,6 +451,11 @@ pub fn to_string(node: Node) -> String {
       flexible:,
     ) ->
       "DEFINE FIELD "
+      <> case strategy {
+        DefineFieldIfNotExists -> "IF NOT EXISTS "
+        DefineFieldOverwrite -> "OVERWRITE "
+        DefineFieldRegular -> ""
+      }
       <> to_string(name)
       <> " ON "
       <> table
@@ -893,7 +946,7 @@ fn option_of(
 
 pub fn to_module(node: Node) -> module.Module {
   case node {
-    DefineTable(name:, schema:, type_:, permissions:, as_:) ->
+    DefineTable(name:, strategy:, schema:, type_:, permissions:, as_:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("DefineTable"),
@@ -902,6 +955,10 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.function_call.add_with_alias(
         "name",
         module.literal.string(name),
+      )
+      |> module.function_call.add_with_alias(
+        "strategy",
+        define_table_strategy_to_module(strategy),
       )
       |> module.function_call.add_with_alias(
         "schema",
@@ -919,6 +976,7 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.add_import(["suweal", "node"])
     DefineField(
       name:,
+      strategy:,
       table:,
       type_:,
       default:,
@@ -932,6 +990,10 @@ pub fn to_module(node: Node) -> module.Module {
       )
       |> module.function_call.create()
       |> module.function_call.add_with_alias("name", to_module(name))
+      |> module.function_call.add_with_alias(
+        "strategy",
+        define_field_strategy_to_module(strategy),
+      )
       |> module.function_call.add_with_alias(
         "table",
         module.literal.string(table),
