@@ -244,3 +244,230 @@ pub fn define_nested_object_field_to_string_test() {
     "DEFINE FIELD settings.notification ON user TYPE bool PERMISSIONS FULL",
   )
 }
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Define Access                                         //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn define_access_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(signin: option.None, signup: option.None),
+  )
+  |> node.to_string()
+  |> should.equal("DEFINE ACCESS user ON DATABASE TYPE RECORD")
+}
+
+pub fn define_access_overwrite_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessOverwrite,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(signin: option.None, signup: option.None),
+  )
+  |> node.to_string()
+  |> should.equal("DEFINE ACCESS OVERWRITE user ON DATABASE TYPE RECORD")
+}
+
+pub fn define_access_if_not_exists_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessIfNotExists,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(signin: option.None, signup: option.None),
+  )
+  |> node.to_string()
+  |> should.equal("DEFINE ACCESS IF NOT EXISTS user ON DATABASE TYPE RECORD")
+}
+
+pub fn define_access_namespace_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessNamespace,
+    type_: node.DefineAccessRecord(signin: option.None, signup: option.None),
+  )
+  |> node.to_string()
+  |> should.equal("DEFINE ACCESS user ON NAMESPACE TYPE RECORD")
+}
+
+pub fn define_access_root_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessRoot,
+    type_: node.DefineAccessRecord(signin: option.None, signup: option.None),
+  )
+  |> node.to_string()
+  |> should.equal("DEFINE ACCESS user ON ROOT TYPE RECORD")
+}
+
+pub fn define_access_with_signin_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(
+      signin: option.Some(node.Select(
+        fields: [
+          node.SelectField(field: node.All, alias: option.None, value: False),
+        ],
+        only: False,
+        table: "user",
+        where: option.Some(node.BinaryOperator(
+          lhs: node.BinaryOperator(
+            lhs: node.Identifier("email"),
+            operator: node.Equal,
+            rhs: node.Parameter("email"),
+          ),
+          operator: node.And,
+          rhs: node.FunctionCall(
+            node: node.BinaryOperator(
+              lhs: node.Identifier("crypto"),
+              operator: node.NamespaceAccess,
+              rhs: node.BinaryOperator(
+                lhs: node.Identifier("argon2"),
+                operator: node.NamespaceAccess,
+                rhs: node.Identifier("compare"),
+              ),
+            ),
+            arguments: [
+              node.Identifier("password"),
+              node.Parameter("password"),
+            ],
+          ),
+        )),
+        order: option.None,
+        limit: option.None,
+        group_all: False,
+      )),
+      signup: option.None,
+    ),
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE ACCESS user ON DATABASE TYPE RECORD "
+    <> "SIGNIN (SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password, $password))",
+  )
+}
+
+pub fn define_access_with_signup_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(
+      signin: option.None,
+      signup: option.Some(
+        node.Create(only: False, target: "user", set: [
+          node.BinaryOperator(
+            lhs: node.Identifier("email"),
+            operator: node.Equal,
+            rhs: node.Parameter("email"),
+          ),
+          node.BinaryOperator(
+            lhs: node.Identifier("password"),
+            operator: node.Equal,
+            rhs: node.FunctionCall(
+              node: node.BinaryOperator(
+                lhs: node.Identifier("crypto"),
+                operator: node.NamespaceAccess,
+                rhs: node.BinaryOperator(
+                  lhs: node.Identifier("argon2"),
+                  operator: node.NamespaceAccess,
+                  rhs: node.Identifier("generate"),
+                ),
+              ),
+              arguments: [
+                node.Parameter("password"),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    ),
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE ACCESS user ON DATABASE TYPE RECORD "
+    <> "SIGNUP (CREATE user SET email = $email, password = crypto::argon2::generate($password))",
+  )
+}
+
+pub fn define_access_with_signin_and_signup_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(
+      signin: option.Some(node.Select(
+        fields: [
+          node.SelectField(field: node.All, alias: option.None, value: False),
+        ],
+        only: False,
+        table: "user",
+        where: option.Some(node.BinaryOperator(
+          lhs: node.BinaryOperator(
+            lhs: node.Identifier("email"),
+            operator: node.Equal,
+            rhs: node.Parameter("email"),
+          ),
+          operator: node.And,
+          rhs: node.FunctionCall(
+            node: node.BinaryOperator(
+              lhs: node.Identifier("crypto"),
+              operator: node.NamespaceAccess,
+              rhs: node.BinaryOperator(
+                lhs: node.Identifier("argon2"),
+                operator: node.NamespaceAccess,
+                rhs: node.Identifier("compare"),
+              ),
+            ),
+            arguments: [
+              node.Identifier("password"),
+              node.Parameter("password"),
+            ],
+          ),
+        )),
+        order: option.None,
+        limit: option.None,
+        group_all: False,
+      )),
+      signup: option.Some(
+        node.Create(only: False, target: "user", set: [
+          node.BinaryOperator(
+            lhs: node.Identifier("email"),
+            operator: node.Equal,
+            rhs: node.Parameter("email"),
+          ),
+          node.BinaryOperator(
+            lhs: node.Identifier("password"),
+            operator: node.Equal,
+            rhs: node.FunctionCall(
+              node: node.BinaryOperator(
+                lhs: node.Identifier("crypto"),
+                operator: node.NamespaceAccess,
+                rhs: node.BinaryOperator(
+                  lhs: node.Identifier("argon2"),
+                  operator: node.NamespaceAccess,
+                  rhs: node.Identifier("generate"),
+                ),
+              ),
+              arguments: [
+                node.Parameter("password"),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    ),
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE ACCESS user ON DATABASE TYPE RECORD "
+    <> "SIGNUP (CREATE user SET email = $email, password = crypto::argon2::generate($password)) "
+    <> "SIGNIN (SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password, $password))",
+  )
+}

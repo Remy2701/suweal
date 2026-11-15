@@ -48,6 +48,7 @@ pub type Operator {
   GreaterThanOrEqual
   LessThanOrEqual
   Access
+  NamespaceAccess
   Inside
   RelationTo
   RelationFrom
@@ -67,6 +68,7 @@ pub fn operator_to_string(operator: Operator) -> String {
     GreaterThanOrEqual -> " >= "
     LessThanOrEqual -> " <= "
     Access -> "."
+    NamespaceAccess -> "::"
     Inside -> " INSIDE "
     RelationTo -> "->"
     RelationFrom -> "<-"
@@ -89,6 +91,7 @@ pub fn operator_to_module(operator: Operator) -> module.Module {
       GreaterThanOrEqual -> "GreaterThanOrEqual"
       LessThanOrEqual -> "LessThanOrEqual"
       Access -> "Access"
+      NamespaceAccess -> "NamespaceAccess"
       Inside -> "Inside"
       RelationTo -> "RelationTo"
       RelationFrom -> "RelationFrom"
@@ -324,6 +327,93 @@ pub fn define_table_strategy_to_module(strategy: DefineTableStrategy) {
 }
 
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                    Define Access Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineAccessStrategy {
+  DefineAccessIfNotExists
+  DefineAccessOverwrite
+  DefineAccessRegular
+}
+
+pub fn define_access_strategy_to_module(strategy: DefineAccessStrategy) {
+  module.identifier.create("node")
+  |> module.binop.access(case strategy {
+    DefineAccessIfNotExists ->
+      module.identifier.create("DefineAccessIfNotExists")
+    DefineAccessOverwrite -> module.identifier.create("DefineAccessOverwrite")
+    DefineAccessRegular -> module.identifier.create("DefineAccessRegular")
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Access Target                                      //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineAccessTarget {
+  DefineAccessDatabase
+  DefineAccessNamespace
+  DefineAccessRoot
+}
+
+pub fn define_access_target_to_module(target: DefineAccessTarget) {
+  module.identifier.create("node")
+  |> module.binop.access(case target {
+    DefineAccessDatabase -> module.identifier.create("DefineAccessDatabase")
+    DefineAccessNamespace -> module.identifier.create("DefineAccessNamespace")
+    DefineAccessRoot -> module.identifier.create("DefineAccessRoot")
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                      Define Access Type                                       //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineAccessType {
+  DefineAccessRecord(signup: option.Option(Node), signin: option.Option(Node))
+}
+
+pub fn define_access_type_to_module(type_: DefineAccessType) {
+  module.identifier.create("node")
+  |> module.binop.access(case type_ {
+    DefineAccessRecord(signup, signin) ->
+      module.identifier.create("DefineAccessRecord")
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias("signup", case signup {
+        option.Some(value) ->
+          module.identifier.create("option")
+          |> module.binop.access(
+            module.identifier.create("Some")
+            |> module.function_call.create()
+            |> module.function_call.add(to_module(value)),
+          )
+          |> module.add_import(["gleam", "option"])
+        option.None ->
+          module.identifier.create("option")
+          |> module.binop.access(module.identifier.create("None"))
+          |> module.add_import(["gleam", "option"])
+      })
+      |> module.function_call.add_with_alias("signin", case signin {
+        option.Some(value) ->
+          module.identifier.create("option")
+          |> module.binop.access(
+            module.identifier.create("Some")
+            |> module.function_call.create()
+            |> module.function_call.add(to_module(value)),
+          )
+          |> module.add_import(["gleam", "option"])
+        option.None ->
+          module.identifier.create("option")
+          |> module.binop.access(module.identifier.create("None"))
+          |> module.add_import(["gleam", "option"])
+      })
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 //                                             Node                                              //
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
@@ -353,7 +443,15 @@ pub type Node {
   /// https://surrealdb.com/docs/reference/query-language/statements/define/indexes
   DefineIndex(name: String, table: String, fields: List(String), unique: Bool)
 
-  FunctionCall(lhs: Option(String), rhs: String, arguments: List(Node))
+  /// https://surrealdb.com/docs/reference/query-language/statements/define/access
+  DefineAccess(
+    name: String,
+    strategy: DefineAccessStrategy,
+    target: DefineAccessTarget,
+    type_: DefineAccessType,
+  )
+
+  FunctionCall(node: Node, arguments: List(Node))
 
   /// https://surrealdb.com/docs/learn/data-models/graph/recursive-traversals
   Self
@@ -492,12 +590,32 @@ pub fn to_string(node: Node) -> String {
         False -> ""
       }
 
-    FunctionCall(lhs:, rhs:, arguments:) ->
-      case lhs {
-        option.Some(lhs) -> lhs <> "::"
-        _ -> ""
+    DefineAccess(name:, strategy:, target:, type_:) ->
+      "DEFINE ACCESS "
+      <> case strategy {
+        DefineAccessIfNotExists -> "IF NOT EXISTS "
+        DefineAccessOverwrite -> "OVERWRITE "
+        DefineAccessRegular -> ""
       }
-      <> rhs
+      <> name
+      <> " ON "
+      <> case target {
+        DefineAccessDatabase -> "DATABASE "
+        DefineAccessNamespace -> "NAMESPACE "
+        DefineAccessRoot -> "ROOT "
+      }
+      <> "TYPE RECORD"
+      <> case type_.signup {
+        option.Some(node) -> " SIGNUP (" <> to_string(node) <> ")"
+        option.None -> ""
+      }
+      <> case type_.signin {
+        option.Some(node) -> " SIGNIN (" <> to_string(node) <> ")"
+        option.None -> ""
+      }
+
+    FunctionCall(node:, arguments:) ->
+      to_string(node)
       <> "("
       <> string.join(list.map(arguments, to_string), ", ")
       <> ")"
@@ -751,10 +869,10 @@ pub fn replace_variables(
     DefineTable(..) -> node
     DefineField(..) -> node
     DefineIndex(..) -> node
-    FunctionCall(lhs:, rhs:, arguments:) ->
+    DefineAccess(..) -> node
+    FunctionCall(node:, arguments:) ->
       FunctionCall(
-        lhs: lhs,
-        rhs: rhs,
+        node: replace_variables(node, values),
         arguments: list.map(arguments, replace_variables(_, values)),
       )
     Self -> node
@@ -1042,17 +1160,36 @@ pub fn to_module(node: Node) -> module.Module {
         module.literal.bool(unique),
       )
       |> module.add_import(["suweal", "node"])
-    FunctionCall(lhs:, rhs:, arguments:) ->
+    DefineAccess(name:, strategy:, target:, type_:) ->
+      module.binop.access(
+        module.identifier.create("node"),
+        module.identifier.create("DefineAccess"),
+      )
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias(
+        "name",
+        module.literal.string(name),
+      )
+      |> module.function_call.add_with_alias(
+        "strategy",
+        define_access_strategy_to_module(strategy),
+      )
+      |> module.function_call.add_with_alias(
+        "target",
+        define_access_target_to_module(target),
+      )
+      |> module.function_call.add_with_alias(
+        "type_",
+        define_access_type_to_module(type_),
+      )
+      |> module.add_import(["suweal", "node"])
+    FunctionCall(node:, arguments:) ->
       module.binop.access(
         module.identifier.create("node"),
         module.identifier.create("FunctionCall"),
       )
       |> module.function_call.create()
-      |> module.function_call.add_with_alias(
-        "lhs",
-        option_of(lhs, module.literal.string),
-      )
-      |> module.function_call.add_with_alias("rhs", module.literal.string(rhs))
+      |> module.function_call.add_with_alias("node", to_module(node))
       |> module.function_call.add_with_alias(
         "arguments",
         module.literal.list(list.map(arguments, to_module)),
