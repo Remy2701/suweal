@@ -606,11 +606,23 @@ pub fn to_string(node: Node) -> String {
       }
       <> "TYPE RECORD"
       <> case type_.signup {
-        option.Some(node) -> " SIGNUP (" <> to_string(node) <> ")"
+        option.Some(node) ->
+          " SIGNUP ("
+          <> to_string(case node {
+            WrappedNode(node) -> node
+            _ -> node
+          })
+          <> ")"
         option.None -> ""
       }
       <> case type_.signin {
-        option.Some(node) -> " SIGNIN (" <> to_string(node) <> ")"
+        option.Some(node) ->
+          " SIGNIN ("
+          <> to_string(case node {
+            WrappedNode(node) -> node
+            _ -> node
+          })
+          <> ")"
         option.None -> ""
       }
 

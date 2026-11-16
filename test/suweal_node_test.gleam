@@ -471,3 +471,83 @@ pub fn define_access_with_signin_and_signup_to_string_test() {
     <> "SIGNIN (SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password, $password))",
   )
 }
+
+pub fn define_access_with_signin_and_signup_no_double_wrap_to_string_test() {
+  node.DefineAccess(
+    name: "user",
+    strategy: node.DefineAccessRegular,
+    target: node.DefineAccessDatabase,
+    type_: node.DefineAccessRecord(
+      signin: option.Some(
+        node.WrappedNode(node.Select(
+          fields: [
+            node.SelectField(field: node.All, alias: option.None, value: False),
+          ],
+          only: False,
+          table: "user",
+          where: option.Some(node.BinaryOperator(
+            lhs: node.BinaryOperator(
+              lhs: node.Identifier("email"),
+              operator: node.Equal,
+              rhs: node.Parameter("email"),
+            ),
+            operator: node.And,
+            rhs: node.FunctionCall(
+              node: node.BinaryOperator(
+                lhs: node.Identifier("crypto"),
+                operator: node.NamespaceAccess,
+                rhs: node.BinaryOperator(
+                  lhs: node.Identifier("argon2"),
+                  operator: node.NamespaceAccess,
+                  rhs: node.Identifier("compare"),
+                ),
+              ),
+              arguments: [
+                node.Identifier("password"),
+                node.Parameter("password"),
+              ],
+            ),
+          )),
+          order: option.None,
+          limit: option.None,
+          group_all: False,
+        )),
+      ),
+      signup: option.Some(
+        node.WrappedNode(
+          node.Create(only: False, target: "user", set: [
+            node.BinaryOperator(
+              lhs: node.Identifier("email"),
+              operator: node.Equal,
+              rhs: node.Parameter("email"),
+            ),
+            node.BinaryOperator(
+              lhs: node.Identifier("password"),
+              operator: node.Equal,
+              rhs: node.FunctionCall(
+                node: node.BinaryOperator(
+                  lhs: node.Identifier("crypto"),
+                  operator: node.NamespaceAccess,
+                  rhs: node.BinaryOperator(
+                    lhs: node.Identifier("argon2"),
+                    operator: node.NamespaceAccess,
+                    rhs: node.Identifier("generate"),
+                  ),
+                ),
+                arguments: [
+                  node.Parameter("password"),
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ),
+  )
+  |> node.to_string()
+  |> should.equal(
+    "DEFINE ACCESS user ON DATABASE TYPE RECORD "
+    <> "SIGNUP (CREATE user SET email = $email, password = crypto::argon2::generate($password)) "
+    <> "SIGNIN (SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password, $password))",
+  )
+}
