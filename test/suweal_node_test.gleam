@@ -1,8 +1,423 @@
 import gleam/option
+import gleam/string
 import gleeunit/should
+import omcg/module
 import suweal/node
 import suweal/surreal_ql
 import suweal/surreal_type
+
+fn assert_import(module: module.Module, expected: String) -> module.Module {
+  module
+  |> module.module_imports_to_string()
+  |> should.equal(expected)
+  module
+}
+
+fn assert_imports(
+  module: module.Module,
+  expected: List(String),
+) -> module.Module {
+  module
+  |> module.module_imports_to_string()
+  |> should.equal(string.join(expected, "\n"))
+  module
+}
+
+fn assert_node(module: module.Module, expected: String) -> module.Module {
+  module
+  |> module.module_node_to_string()
+  |> should.equal(expected)
+  module
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                        Order Direction                                        //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn order_direction_to_string_test() {
+  node.Ascending
+  |> node.order_direction_to_string()
+  |> should.equal("ASC")
+
+  node.Descending
+  |> node.order_direction_to_string()
+  |> should.equal("DESC")
+}
+
+pub fn order_direction_to_module_test() {
+  node.Ascending
+  |> node.order_direction_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Ascending")
+
+  node.Descending
+  |> node.order_direction_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Descending")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                           Operator                                            //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn operator_to_string_test() {
+  node.Equal
+  |> node.operator_to_string()
+  |> should.equal(" = ")
+
+  node.NotEqual
+  |> node.operator_to_string()
+  |> should.equal(" != ")
+
+  node.GreaterThan
+  |> node.operator_to_string()
+  |> should.equal(" > ")
+
+  node.GreaterThanOrEqual
+  |> node.operator_to_string()
+  |> should.equal(" >= ")
+
+  node.LessThan
+  |> node.operator_to_string()
+  |> should.equal(" < ")
+
+  node.LessThanOrEqual
+  |> node.operator_to_string()
+  |> should.equal(" <= ")
+
+  node.Access
+  |> node.operator_to_string()
+  |> should.equal(".")
+
+  node.NamespaceAccess
+  |> node.operator_to_string()
+  |> should.equal("::")
+
+  node.Inside
+  |> node.operator_to_string()
+  |> should.equal(" INSIDE ")
+
+  node.RelationTo
+  |> node.operator_to_string()
+  |> should.equal("->")
+
+  node.RelationFrom
+  |> node.operator_to_string()
+  |> should.equal("<-")
+
+  node.RelationToFrom
+  |> node.operator_to_string()
+  |> should.equal("<->")
+
+  node.Indexing
+  |> node.operator_to_string()
+  |> should.equal("[")
+
+  node.And
+  |> node.operator_to_string()
+  |> should.equal(" AND ")
+
+  node.Or
+  |> node.operator_to_string()
+  |> should.equal(" OR ")
+}
+
+pub fn operator_to_module_test() {
+  node.Equal
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Equal")
+
+  node.NotEqual
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.NotEqual")
+
+  node.GreaterThan
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.GreaterThan")
+
+  node.GreaterThanOrEqual
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.GreaterThanOrEqual")
+
+  node.LessThan
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.LessThan")
+
+  node.LessThanOrEqual
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.LessThanOrEqual")
+
+  node.Access
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Access")
+
+  node.NamespaceAccess
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.NamespaceAccess")
+
+  node.Inside
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Inside")
+
+  node.RelationTo
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.RelationTo")
+
+  node.RelationFrom
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.RelationFrom")
+
+  node.RelationToFrom
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.RelationToFrom")
+
+  node.Indexing
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Indexing")
+
+  node.And
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.And")
+
+  node.Or
+  |> node.operator_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Or")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Select Field                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn select_field_to_string_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.None,
+    value: False,
+  )
+  |> node.select_field_to_string()
+  |> should.equal("field")
+}
+
+pub fn select_value_field_to_string_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.None,
+    value: True,
+  )
+  |> node.select_field_to_string()
+  |> should.equal("VALUE field")
+}
+
+pub fn select_field_with_alias_to_string_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.Some("alias"),
+    value: False,
+  )
+  |> node.select_field_to_string()
+  |> should.equal("field AS alias")
+}
+
+pub fn select_value_field_with_alias_to_string_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.Some("alias"),
+    value: True,
+  )
+  |> node.select_field_to_string()
+  |> should.equal("VALUE field AS alias")
+}
+
+pub fn select_field_to_module_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.None,
+    value: False,
+  )
+  |> node.select_field_to_module()
+  |> assert_imports([
+    "import gleam/option",
+    "import suweal/node",
+  ])
+  |> assert_node(
+    "node.SelectField(\n"
+    <> "  field: node.Identifier(\"field\"),\n"
+    <> "  alias: option.None,\n"
+    <> "  value: False,\n"
+    <> ")",
+  )
+}
+
+pub fn select_value_field_to_module_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.None,
+    value: True,
+  )
+  |> node.select_field_to_module()
+  |> assert_imports([
+    "import gleam/option",
+    "import suweal/node",
+  ])
+  |> assert_node(
+    "node.SelectField("
+    <> "field: node.Identifier(\"field\"), "
+    <> "alias: option.None, "
+    <> "value: True"
+    <> ")",
+  )
+}
+
+pub fn select_field_with_alias_to_module_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.Some("alias"),
+    value: False,
+  )
+  |> node.select_field_to_module()
+  |> assert_imports([
+    "import gleam/option",
+    "import suweal/node",
+  ])
+  |> assert_node(
+    "node.SelectField(\n"
+    <> "  field: node.Identifier(\"field\"),\n"
+    <> "  alias: option.Some(\"alias\"),\n"
+    <> "  value: False,\n"
+    <> ")",
+  )
+}
+
+pub fn select_value_field_with_alias_to_module_test() {
+  node.SelectField(
+    field: node.Identifier("field"),
+    alias: option.Some("alias"),
+    value: True,
+  )
+  |> node.select_field_to_module()
+  |> assert_imports([
+    "import gleam/option",
+    "import suweal/node",
+  ])
+  |> assert_node(
+    "node.SelectField(\n"
+    <> "  field: node.Identifier(\"field\"),\n"
+    <> "  alias: option.Some(\"alias\"),\n"
+    <> "  value: True,\n"
+    <> ")",
+  )
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Schema Type                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn schema_type_to_string_test() {
+  node.Schemafull
+  |> node.schema_type_to_string()
+  |> should.equal("SCHEMAFULL")
+
+  node.Schemaless
+  |> node.schema_type_to_string()
+  |> should.equal("SCHEMALESS")
+}
+
+pub fn schema_type_to_module_test() {
+  node.Schemafull
+  |> node.schema_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Schemafull")
+
+  node.Schemaless
+  |> node.schema_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.Schemaless")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Table Type                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn table_type_to_string_test() {
+  node.NormalTable
+  |> node.table_type_to_string()
+  |> should.equal("NORMAL")
+
+  node.RelationTable(in: "user", out: "likes")
+  |> node.table_type_to_string()
+  |> should.equal("RELATION IN user OUT likes")
+}
+
+pub fn table_type_to_module_test() {
+  node.NormalTable
+  |> node.table_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.NormalTable")
+
+  node.RelationTable(in: "user", out: "likes")
+  |> node.table_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.RelationTable(in: \"user\", out: \"likes\")")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Operation Type                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn operation_type_to_string_test() {
+  node.OperationCreate
+  |> node.operation_type_to_string()
+  |> should.equal("create")
+
+  node.OperationSelect
+  |> node.operation_type_to_string()
+  |> should.equal("select")
+
+  node.OperationUpdate
+  |> node.operation_type_to_string()
+  |> should.equal("update")
+
+  node.OperationDelete
+  |> node.operation_type_to_string()
+  |> should.equal("delete")
+}
+
+pub fn operation_type_to_module_test() {
+  node.OperationCreate
+  |> node.operation_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.OperationCreate")
+
+  node.OperationSelect
+  |> node.operation_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.OperationSelect")
+
+  node.OperationUpdate
+  |> node.operation_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.OperationUpdate")
+
+  node.OperationDelete
+  |> node.operation_type_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.OperationDelete")
+}
 
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 //                                         Define Table                                          //

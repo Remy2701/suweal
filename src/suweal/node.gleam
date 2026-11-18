@@ -113,6 +113,36 @@ pub type SelectField {
   SelectField(field: Node, alias: Option(String), value: Bool)
 }
 
+pub fn select_field_to_string(field: SelectField) -> String {
+  case field.value {
+    True -> "VALUE "
+    False -> ""
+  }
+  <> to_string(field.field)
+  <> case field.alias {
+    option.Some(alias) -> " AS " <> alias
+    option.None -> ""
+  }
+}
+
+pub fn select_field_to_module(field: SelectField) -> module.Module {
+  module.binop.access(
+    module.identifier.create("node"),
+    module.identifier.create("SelectField"),
+  )
+  |> module.function_call.create()
+  |> module.function_call.add_with_alias("field", to_module(field.field))
+  |> module.function_call.add_with_alias(
+    "alias",
+    option_of(field.alias, module.literal.string),
+  )
+  |> module.function_call.add_with_alias(
+    "value",
+    module.literal.bool(field.value),
+  )
+  |> module.add_import(["suweal", "node"])
+}
+
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 //                                          Schema Type                                          //
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
@@ -667,16 +697,7 @@ pub fn to_string(node: Node) -> String {
 
     Select(fields:, only:, table:, where:, order:, limit:, group_all:) ->
       "SELECT "
-      <> string.join(
-        list.map(fields, fn(field) {
-          to_string(field.field)
-          <> case field.alias {
-            option.Some(alias) -> " AS " <> alias
-            option.None -> ""
-          }
-        }),
-        ", ",
-      )
+      <> string.join(list.map(fields, select_field_to_string), ", ")
       <> " FROM "
       <> case only {
         True -> "ONLY "
@@ -1290,27 +1311,7 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.function_call.create()
       |> module.function_call.add_with_alias(
         "fields",
-        module.literal.list(
-          list.map(fields, fn(field) {
-            module.binop.access(
-              module.identifier.create("node"),
-              module.identifier.create("SelectField"),
-            )
-            |> module.function_call.create()
-            |> module.function_call.add_with_alias(
-              "field",
-              to_module(field.field),
-            )
-            |> module.function_call.add_with_alias(
-              "alias",
-              option_of(field.alias, module.literal.string),
-            )
-            |> module.function_call.add_with_alias(
-              "value",
-              module.literal.bool(field.value),
-            )
-          }),
-        ),
+        module.literal.list(list.map(fields, select_field_to_module)),
       )
       |> module.function_call.add_with_alias("only", module.literal.bool(only))
       |> module.function_call.add_with_alias(
