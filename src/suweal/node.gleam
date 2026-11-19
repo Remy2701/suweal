@@ -326,6 +326,14 @@ pub type DefineFieldStrategy {
   DefineFieldRegular
 }
 
+pub fn define_field_strategy_to_string(strategy: DefineFieldStrategy) {
+  case strategy {
+    DefineFieldIfNotExists -> "IF NOT EXISTS "
+    DefineFieldOverwrite -> "OVERWRITE "
+    DefineFieldRegular -> ""
+  }
+}
+
 pub fn define_field_strategy_to_module(strategy: DefineFieldStrategy) {
   module.identifier.create("node")
   |> module.binop.access(case strategy {
@@ -344,6 +352,14 @@ pub type DefineTableStrategy {
   DefineTableIfNotExists
   DefineTableOverwrite
   DefineTableRegular
+}
+
+pub fn define_table_strategy_to_string(strategy: DefineTableStrategy) {
+  case strategy {
+    DefineTableIfNotExists -> "IF NOT EXISTS "
+    DefineTableOverwrite -> "OVERWRITE "
+    DefineTableRegular -> ""
+  }
 }
 
 pub fn define_table_strategy_to_module(strategy: DefineTableStrategy) {
@@ -366,6 +382,14 @@ pub type DefineAccessStrategy {
   DefineAccessRegular
 }
 
+pub fn define_access_strategy_to_string(strategy: DefineAccessStrategy) {
+  case strategy {
+    DefineAccessIfNotExists -> "IF NOT EXISTS "
+    DefineAccessOverwrite -> "OVERWRITE "
+    DefineAccessRegular -> ""
+  }
+}
+
 pub fn define_access_strategy_to_module(strategy: DefineAccessStrategy) {
   module.identifier.create("node")
   |> module.binop.access(case strategy {
@@ -385,6 +409,14 @@ pub type DefineAccessTarget {
   DefineAccessDatabase
   DefineAccessNamespace
   DefineAccessRoot
+}
+
+pub fn define_access_target_to_string(target: DefineAccessTarget) {
+  case target {
+    DefineAccessDatabase -> "DATABASE"
+    DefineAccessNamespace -> "NAMESPACE"
+    DefineAccessRoot -> "ROOT"
+  }
 }
 
 pub fn define_access_target_to_module(target: DefineAccessTarget) {
@@ -551,11 +583,7 @@ pub fn to_string(node: Node) -> String {
   case node {
     DefineTable(name:, strategy:, schema:, type_:, permissions:, as_:) ->
       "DEFINE TABLE "
-      <> case strategy {
-        DefineTableIfNotExists -> "IF NOT EXISTS "
-        DefineTableOverwrite -> "OVERWRITE "
-        DefineTableRegular -> ""
-      }
+      <> define_table_strategy_to_string(strategy)
       <> name
       <> " TYPE "
       <> table_type_to_string(type_)
@@ -579,11 +607,7 @@ pub fn to_string(node: Node) -> String {
       flexible:,
     ) ->
       "DEFINE FIELD "
-      <> case strategy {
-        DefineFieldIfNotExists -> "IF NOT EXISTS "
-        DefineFieldOverwrite -> "OVERWRITE "
-        DefineFieldRegular -> ""
-      }
+      <> define_field_strategy_to_string(strategy)
       <> to_string(name)
       <> " ON "
       <> table
@@ -622,19 +646,11 @@ pub fn to_string(node: Node) -> String {
 
     DefineAccess(name:, strategy:, target:, type_:) ->
       "DEFINE ACCESS "
-      <> case strategy {
-        DefineAccessIfNotExists -> "IF NOT EXISTS "
-        DefineAccessOverwrite -> "OVERWRITE "
-        DefineAccessRegular -> ""
-      }
+      <> define_access_strategy_to_string(strategy)
       <> name
       <> " ON "
-      <> case target {
-        DefineAccessDatabase -> "DATABASE "
-        DefineAccessNamespace -> "NAMESPACE "
-        DefineAccessRoot -> "ROOT "
-      }
-      <> "TYPE RECORD"
+      <> define_access_target_to_string(target)
+      <> " TYPE RECORD"
       <> case type_.signup {
         option.Some(node) ->
           " SIGNUP ("

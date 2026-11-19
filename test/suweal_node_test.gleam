@@ -420,6 +420,284 @@ pub fn operation_type_to_module_test() {
 }
 
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Permission                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn permission_to_string_test() {
+  node.PermissionFull
+  |> node.permission_to_string()
+  |> should.equal("FULL")
+
+  node.PermissionNone
+  |> node.permission_to_string()
+  |> should.equal("NONE")
+
+  node.PermissionForFull(targets: [node.OperationCreate])
+  |> node.permission_to_string()
+  |> should.equal("FOR create FULL")
+
+  node.PermissionForFull(targets: [node.OperationCreate, node.OperationUpdate])
+  |> node.permission_to_string()
+  |> should.equal("FOR create, update FULL")
+
+  node.PermissionForNone(targets: [node.OperationCreate])
+  |> node.permission_to_string()
+  |> should.equal("FOR create NONE")
+
+  node.PermissionForNone(targets: [node.OperationCreate, node.OperationUpdate])
+  |> node.permission_to_string()
+  |> should.equal("FOR create, update NONE")
+
+  node.PermissionForWhere(
+    targets: [node.OperationCreate],
+    expression: node.BinaryOperator(
+      lhs: node.Identifier("a"),
+      operator: node.Equal,
+      rhs: node.Identifier("b"),
+    ),
+  )
+  |> node.permission_to_string()
+  |> should.equal("FOR create WHERE a = b")
+
+  node.PermissionForWhere(
+    targets: [node.OperationCreate, node.OperationUpdate],
+    expression: node.BinaryOperator(
+      lhs: node.Identifier("a"),
+      operator: node.Equal,
+      rhs: node.Identifier("b"),
+    ),
+  )
+  |> node.permission_to_string()
+  |> should.equal("FOR create, update WHERE a = b")
+}
+
+pub fn permission_to_module_test() {
+  node.PermissionFull
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.PermissionFull")
+
+  node.PermissionNone
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.PermissionNone")
+
+  node.PermissionForFull(targets: [node.OperationCreate])
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.PermissionForFull(targets: [node.OperationCreate])")
+
+  node.PermissionForFull(targets: [node.OperationCreate, node.OperationUpdate])
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node(
+    "node.PermissionForFull(targets: [node.OperationCreate, node.OperationUpdate])",
+  )
+
+  node.PermissionForNone(targets: [node.OperationCreate])
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node("node.PermissionForNone(targets: [node.OperationCreate])")
+
+  node.PermissionForNone(targets: [node.OperationCreate, node.OperationUpdate])
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node(
+    "node.PermissionForNone(targets: [node.OperationCreate, node.OperationUpdate])",
+  )
+
+  node.PermissionForWhere(
+    targets: [node.OperationCreate],
+    expression: node.BinaryOperator(
+      lhs: node.Identifier("a"),
+      operator: node.Equal,
+      rhs: node.Identifier("b"),
+    ),
+  )
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node(
+    "node.PermissionForWhere(\n"
+    <> "  targets: [node.OperationCreate],\n"
+    <> "  expression: node.BinaryOperator(\n"
+    <> "    lhs: node.Identifier(\"a\"),\n"
+    <> "    operator: node.Equal,\n"
+    <> "    rhs: node.Identifier(\"b\"),\n"
+    <> "  ),\n"
+    <> ")",
+  )
+
+  node.PermissionForWhere(
+    targets: [node.OperationCreate, node.OperationUpdate],
+    expression: node.BinaryOperator(
+      lhs: node.Identifier("a"),
+      operator: node.Equal,
+      rhs: node.Identifier("b"),
+    ),
+  )
+  |> node.permission_to_module()
+  |> assert_import("import suweal/node")
+  |> assert_node(
+    "node.PermissionForWhere(\n"
+    <> "  targets: [node.OperationCreate, node.OperationUpdate],\n"
+    <> "  expression: node.BinaryOperator(\n"
+    <> "    lhs: node.Identifier(\"a\"),\n"
+    <> "    operator: node.Equal,\n"
+    <> "    rhs: node.Identifier(\"b\"),\n"
+    <> "  ),\n"
+    <> ")",
+  )
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Field Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn define_field_if_not_exists_to_string_test() {
+  node.define_field_strategy_to_string(node.DefineFieldIfNotExists)
+  |> should.equal("IF NOT EXISTS ")
+}
+
+pub fn define_field_overwrite_to_string_test() {
+  node.define_field_strategy_to_string(node.DefineFieldOverwrite)
+  |> should.equal("OVERWRITE ")
+}
+
+pub fn define_field_regular_to_string_test() {
+  node.define_field_strategy_to_string(node.DefineFieldRegular)
+  |> should.equal("")
+}
+
+pub fn define_field_strategy_to_module_test() {
+  node.define_field_strategy_to_module(node.DefineFieldIfNotExists)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineFieldIfNotExists")
+}
+
+pub fn define_field_strategy_to_module_overwrite_test() {
+  node.define_field_strategy_to_module(node.DefineFieldOverwrite)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineFieldOverwrite")
+}
+
+pub fn define_field_strategy_to_module_regular_test() {
+  node.define_field_strategy_to_module(node.DefineFieldRegular)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineFieldRegular")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Table Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn define_table_if_not_exists_to_string_test() {
+  node.define_table_strategy_to_string(node.DefineTableIfNotExists)
+  |> should.equal("IF NOT EXISTS ")
+}
+
+pub fn define_table_overwrite_to_string_test() {
+  node.define_table_strategy_to_string(node.DefineTableOverwrite)
+  |> should.equal("OVERWRITE ")
+}
+
+pub fn define_table_regular_to_string_test() {
+  node.define_table_strategy_to_string(node.DefineTableRegular)
+  |> should.equal("")
+}
+
+pub fn define_table_strategy_to_module_test() {
+  node.define_table_strategy_to_module(node.DefineTableIfNotExists)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineTableIfNotExists")
+}
+
+pub fn define_table_strategy_to_module_overwrite_test() {
+  node.define_table_strategy_to_module(node.DefineTableOverwrite)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineTableOverwrite")
+}
+
+pub fn define_table_strategy_to_module_regular_test() {
+  node.define_table_strategy_to_module(node.DefineTableRegular)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineTableRegular")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                    Define Access Strategy                                     //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn define_access_if_not_exists_to_string_test() {
+  node.define_access_strategy_to_string(node.DefineAccessIfNotExists)
+  |> should.equal("IF NOT EXISTS ")
+}
+
+pub fn define_access_overwrite_to_string_test() {
+  node.define_access_strategy_to_string(node.DefineAccessOverwrite)
+  |> should.equal("OVERWRITE ")
+}
+
+pub fn define_access_regular_to_string_test() {
+  node.define_access_strategy_to_string(node.DefineAccessRegular)
+  |> should.equal("")
+}
+
+pub fn define_access_strategy_to_module_test() {
+  node.define_access_strategy_to_module(node.DefineAccessIfNotExists)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessIfNotExists")
+}
+
+pub fn define_access_strategy_to_module_overwrite_test() {
+  node.define_access_strategy_to_module(node.DefineAccessOverwrite)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessOverwrite")
+}
+
+pub fn define_access_strategy_to_module_regular_test() {
+  node.define_access_strategy_to_module(node.DefineAccessRegular)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessRegular")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                     Define Access Target                                      //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub fn define_access_database_to_string_test() {
+  node.define_access_target_to_string(node.DefineAccessDatabase)
+  |> should.equal("DATABASE")
+}
+
+pub fn define_access_namespace_to_string_test() {
+  node.define_access_target_to_string(node.DefineAccessNamespace)
+  |> should.equal("NAMESPACE")
+}
+
+pub fn define_access_root_to_string_test() {
+  node.define_access_target_to_string(node.DefineAccessRoot)
+  |> should.equal("ROOT")
+}
+
+pub fn define_access_target_to_module_database_test() {
+  node.define_access_target_to_module(node.DefineAccessDatabase)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessDatabase")
+}
+
+pub fn define_access_target_to_module_namespace_test() {
+  node.define_access_target_to_module(node.DefineAccessNamespace)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessNamespace")
+}
+
+pub fn define_access_target_to_module_root_test() {
+  node.define_access_target_to_module(node.DefineAccessRoot)
+  |> assert_import("import suweal/node")
+  |> assert_node("node.DefineAccessRoot")
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 //                                         Define Table                                          //
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
@@ -675,7 +953,7 @@ pub fn define_access_to_string_test() {
   |> should.equal("DEFINE ACCESS user ON DATABASE TYPE RECORD")
 }
 
-pub fn define_access_overwrite_to_string_test() {
+pub fn define_access_overwrite_node_to_string_test() {
   node.DefineAccess(
     name: "user",
     strategy: node.DefineAccessOverwrite,
@@ -686,7 +964,7 @@ pub fn define_access_overwrite_to_string_test() {
   |> should.equal("DEFINE ACCESS OVERWRITE user ON DATABASE TYPE RECORD")
 }
 
-pub fn define_access_if_not_exists_to_string_test() {
+pub fn define_access_if_not_node_exists_to_string_test() {
   node.DefineAccess(
     name: "user",
     strategy: node.DefineAccessIfNotExists,
@@ -697,7 +975,7 @@ pub fn define_access_if_not_exists_to_string_test() {
   |> should.equal("DEFINE ACCESS IF NOT EXISTS user ON DATABASE TYPE RECORD")
 }
 
-pub fn define_access_namespace_to_string_test() {
+pub fn define_access_namespace_node_to_string_test() {
   node.DefineAccess(
     name: "user",
     strategy: node.DefineAccessRegular,
@@ -708,7 +986,7 @@ pub fn define_access_namespace_to_string_test() {
   |> should.equal("DEFINE ACCESS user ON NAMESPACE TYPE RECORD")
 }
 
-pub fn define_access_root_to_string_test() {
+pub fn define_access_root_node_to_string_test() {
   node.DefineAccess(
     name: "user",
     strategy: node.DefineAccessRegular,
