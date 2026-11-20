@@ -433,14 +433,37 @@ pub fn define_access_target_to_module(target: DefineAccessTarget) {
 //                                      Define Access Type                                       //
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
+pub type JWTConfiguration {
+  JWTConfiguration(algorithm: String, key: String)
+}
+
+pub fn jwt_configuration_to_module(config: JWTConfiguration) {
+  module.identifier.create("node")
+  |> module.binop.access(case config {
+    JWTConfiguration(algorithm, key) ->
+      module.identifier.create("JWTConfiguration")
+      |> module.function_call.create()
+      |> module.function_call.add_with_alias(
+        "algorithm",
+        module.literal.string(algorithm),
+      )
+      |> module.function_call.add_with_alias("key", module.literal.string(key))
+  })
+  |> module.add_import(["suweal", "node"])
+}
+
 pub type DefineAccessType {
-  DefineAccessRecord(signup: option.Option(Node), signin: option.Option(Node))
+  DefineAccessRecord(
+    signup: option.Option(Node),
+    signin: option.Option(Node),
+    jwt_config: option.Option(JWTConfiguration),
+  )
 }
 
 pub fn define_access_type_to_module(type_: DefineAccessType) {
   module.identifier.create("node")
   |> module.binop.access(case type_ {
-    DefineAccessRecord(signup, signin) ->
+    DefineAccessRecord(signup, signin, jwt_config) ->
       module.identifier.create("DefineAccessRecord")
       |> module.function_call.create()
       |> module.function_call.add_with_alias("signup", case signup {
@@ -464,6 +487,20 @@ pub fn define_access_type_to_module(type_: DefineAccessType) {
             module.identifier.create("Some")
             |> module.function_call.create()
             |> module.function_call.add(to_module(value)),
+          )
+          |> module.add_import(["gleam", "option"])
+        option.None ->
+          module.identifier.create("option")
+          |> module.binop.access(module.identifier.create("None"))
+          |> module.add_import(["gleam", "option"])
+      })
+      |> module.function_call.add_with_alias("jwt_config", case jwt_config {
+        option.Some(value) ->
+          module.identifier.create("option")
+          |> module.binop.access(
+            module.identifier.create("Some")
+            |> module.function_call.create()
+            |> module.function_call.add(jwt_configuration_to_module(value)),
           )
           |> module.add_import(["gleam", "option"])
         option.None ->
@@ -669,6 +706,11 @@ pub fn to_string(node: Node) -> String {
             _ -> node
           })
           <> ")"
+        option.None -> ""
+      }
+      <> case type_.jwt_config {
+        option.Some(config) ->
+          " WITH JWT ALGORITHM " <> config.algorithm <> " KEY " <> config.key
         option.None -> ""
       }
 
