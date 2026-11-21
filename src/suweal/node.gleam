@@ -960,7 +960,20 @@ pub fn replace_variables(
     DefineTable(..) -> node
     DefineField(..) -> node
     DefineIndex(..) -> node
-    DefineAccess(..) -> node
+    DefineAccess(type_:, ..) ->
+      DefineAccess(..node, type_: case type_ {
+        DefineAccessRecord(signup:, signin:, jwt_config:) ->
+          DefineAccessRecord(
+            signup: option.map(signup, replace_variables(_, values)),
+            signin: option.map(signin, replace_variables(_, values)),
+            jwt_config: option.map(jwt_config, fn(config) {
+              JWTConfiguration(
+                algorithm: replace_variables(config.algorithm, values),
+                key: replace_variables(config.key, values),
+              )
+            }),
+          )
+      })
     FunctionCall(node:, arguments:) ->
       FunctionCall(
         node: replace_variables(node, values),
