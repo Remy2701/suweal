@@ -1255,8 +1255,8 @@ pub fn define_access_with_signin_and_signup_with_jwt_to_string_test() {
         ]),
       ),
       jwt_config: option.Some(node.JWTConfiguration(
-        algorithm: "HS256",
-        key: "secret",
+        algorithm: node.Value(surreal_ql.String("HS256")),
+        key: node.Value(surreal_ql.String("secret")),
       )),
     ),
   )
@@ -1265,7 +1265,7 @@ pub fn define_access_with_signin_and_signup_with_jwt_to_string_test() {
     "DEFINE ACCESS user ON DATABASE TYPE RECORD "
     <> "SIGNUP (CREATE user SET email = $email, password = crypto::argon2::generate($password)) "
     <> "SIGNIN (SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(password, $password)) "
-    <> "WITH JWT ALGORITHM HS256 KEY secret",
+    <> "WITH JWT ALGORITHM \"HS256\" KEY \"secret\"",
   )
 }
 

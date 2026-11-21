@@ -434,7 +434,7 @@ pub fn define_access_target_to_module(target: DefineAccessTarget) {
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
 
 pub type JWTConfiguration {
-  JWTConfiguration(algorithm: String, key: String)
+  JWTConfiguration(algorithm: Node, key: Node)
 }
 
 pub fn jwt_configuration_to_module(config: JWTConfiguration) {
@@ -443,11 +443,8 @@ pub fn jwt_configuration_to_module(config: JWTConfiguration) {
     JWTConfiguration(algorithm, key) ->
       module.identifier.create("JWTConfiguration")
       |> module.function_call.create()
-      |> module.function_call.add_with_alias(
-        "algorithm",
-        module.literal.string(algorithm),
-      )
-      |> module.function_call.add_with_alias("key", module.literal.string(key))
+      |> module.function_call.add_with_alias("algorithm", to_module(algorithm))
+      |> module.function_call.add_with_alias("key", to_module(key))
   })
   |> module.add_import(["suweal", "node"])
 }
@@ -710,7 +707,10 @@ pub fn to_string(node: Node) -> String {
       }
       <> case type_.jwt_config {
         option.Some(config) ->
-          " WITH JWT ALGORITHM " <> config.algorithm <> " KEY " <> config.key
+          " WITH JWT ALGORITHM "
+          <> to_string(config.algorithm)
+          <> " KEY "
+          <> to_string(config.key)
         option.None -> ""
       }
 
