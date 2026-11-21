@@ -1,6 +1,7 @@
 # Changelog
 
-## Unreleased
+## Version 0.8.0
+Released on November 21st 2026.
 
 ### Improvements
 - **[BREAKING]** Changed `JWTConfiguration` fields to use `Node` instead of `String`
