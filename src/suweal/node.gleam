@@ -1539,3 +1539,947 @@ pub fn to_module(node: Node) -> module.Module {
       |> module.add_import(["suweal", "node"])
   }
 }
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Define Table                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineTableNS {
+  DefineTableNS(
+    create: fn(String) -> Node,
+    with_strategy: fn(Node, DefineTableStrategy) -> Node,
+    with_schema: fn(Node, SchemaType) -> Node,
+    with_type: fn(Node, TableType) -> Node,
+    add_permission: fn(Node, Permission) -> Node,
+    set_as: fn(Node, Node) -> Node,
+  )
+}
+
+pub const define_table = DefineTableNS(
+  create: define_table_create,
+  with_strategy: define_table_with_strategy,
+  with_schema: define_table_with_schema,
+  with_type: define_table_with_type,
+  add_permission: define_table_add_permission,
+  set_as: define_table_set_as,
+)
+
+pub fn define_table_create(name: String) -> Node {
+  DefineTable(
+    name:,
+    strategy: DefineTableRegular,
+    schema: Schemafull,
+    type_: NormalTable,
+    permissions: [],
+    as_: option.None,
+  )
+}
+
+pub fn define_table_with_strategy(
+  node: Node,
+  strategy: DefineTableStrategy,
+) -> Node {
+  case node {
+    DefineTable(..) -> DefineTable(..node, strategy: strategy)
+    _ -> node
+  }
+}
+
+pub fn define_table_with_schema(node: Node, schema: SchemaType) -> Node {
+  case node {
+    DefineTable(..) -> DefineTable(..node, schema: schema)
+    _ -> node
+  }
+}
+
+pub fn define_table_with_type(node: Node, type_: TableType) -> Node {
+  case node {
+    DefineTable(..) -> DefineTable(..node, type_: type_)
+    _ -> node
+  }
+}
+
+pub fn define_table_add_permission(node: Node, permission: Permission) -> Node {
+  case node {
+    DefineTable(..) ->
+      DefineTable(
+        ..node,
+        permissions: list.append(node.permissions, [permission]),
+      )
+    _ -> node
+  }
+}
+
+pub fn define_table_set_as(node: Node, as_: Node) -> Node {
+  case node {
+    DefineTable(..) -> DefineTable(..node, as_: option.Some(as_))
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Define Field                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineFieldNS {
+  DefineFieldNS(
+    create: fn(Node, String, surreal_type.SurrealType) -> Node,
+    with_strategy: fn(Node, DefineFieldStrategy) -> Node,
+    with_default: fn(Node, Node) -> Node,
+    with_assert: fn(Node, Node) -> Node,
+    add_permission: fn(Node, Permission) -> Node,
+    set_flexible: fn(Node, Bool) -> Node,
+  )
+}
+
+pub const define_field: DefineFieldNS = DefineFieldNS(
+  create: define_field_create,
+  with_strategy: define_field_with_strategy,
+  with_default: define_field_with_default,
+  with_assert: define_field_with_assert,
+  add_permission: define_field_add_permission,
+  set_flexible: define_field_set_flexible,
+)
+
+pub fn define_field_create(
+  name: Node,
+  table: String,
+  type_: surreal_type.SurrealType,
+) -> Node {
+  DefineField(
+    name: name,
+    strategy: DefineFieldRegular,
+    table: table,
+    type_: type_,
+    default: option.None,
+    assert_: option.None,
+    permissions: [],
+    flexible: False,
+  )
+}
+
+pub fn define_field_with_strategy(
+  node: Node,
+  strategy: DefineFieldStrategy,
+) -> Node {
+  case node {
+    DefineField(..) -> DefineField(..node, strategy: strategy)
+    _ -> node
+  }
+}
+
+pub fn define_field_with_default(node: Node, default: Node) -> Node {
+  case node {
+    DefineField(..) -> DefineField(..node, default: option.Some(default))
+    _ -> node
+  }
+}
+
+pub fn define_field_with_assert(node: Node, assert_: Node) -> Node {
+  case node {
+    DefineField(..) -> DefineField(..node, assert_: option.Some(assert_))
+    _ -> node
+  }
+}
+
+pub fn define_field_add_permission(node: Node, permission: Permission) -> Node {
+  case node {
+    DefineField(..) ->
+      DefineField(
+        ..node,
+        permissions: list.append(node.permissions, [permission]),
+      )
+    _ -> node
+  }
+}
+
+pub fn define_field_set_flexible(node: Node, flexible: Bool) -> Node {
+  case node {
+    DefineField(..) -> DefineField(..node, flexible: flexible)
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Define Index                                          //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineIndexNS {
+  DefineIndexNS(
+    create: fn(String, String) -> Node,
+    add_field: fn(Node, String) -> Node,
+    set_unique: fn(Node, Bool) -> Node,
+  )
+}
+
+pub const define_index = DefineIndexNS(
+  create: define_index_create,
+  add_field: define_index_add_field,
+  set_unique: define_index_set_unique,
+)
+
+pub fn define_index_create(name: String, table: String) -> Node {
+  DefineIndex(name: name, table: table, fields: [], unique: False)
+}
+
+pub fn define_index_add_field(node: Node, field: String) -> Node {
+  case node {
+    DefineIndex(..) ->
+      DefineIndex(..node, fields: list.append(node.fields, [field]))
+    _ -> node
+  }
+}
+
+pub fn define_index_set_unique(node: Node, unique: Bool) -> Node {
+  case node {
+    DefineIndex(..) -> DefineIndex(..node, unique: unique)
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Define Access                                         //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DefineAccessNS {
+  DefineAccessNS(
+    create: fn(String) -> Node,
+    with_strategy: fn(Node, DefineAccessStrategy) -> Node,
+    with_target: fn(Node, DefineAccessTarget) -> Node,
+    with_signin: fn(Node, Node) -> Node,
+    with_signup: fn(Node, Node) -> Node,
+    with_jwt_config: fn(Node, JWTConfiguration) -> Node,
+  )
+}
+
+pub const define_access = DefineAccessNS(
+  create: define_access_create,
+  with_strategy: define_access_with_strategy,
+  with_target: define_access_with_target,
+  with_signin: define_access_with_signin,
+  with_signup: define_access_with_signup,
+  with_jwt_config: define_access_with_jwt_config,
+)
+
+pub fn define_access_create(name: String) -> Node {
+  DefineAccess(
+    name:,
+    strategy: DefineAccessRegular,
+    target: DefineAccessDatabase,
+    type_: DefineAccessRecord(
+      signup: option.None,
+      signin: option.None,
+      jwt_config: option.None,
+    ),
+  )
+}
+
+pub fn define_access_with_strategy(
+  node: Node,
+  strategy: DefineAccessStrategy,
+) -> Node {
+  case node {
+    DefineAccess(..) -> DefineAccess(..node, strategy:)
+    _ -> node
+  }
+}
+
+pub fn define_access_with_target(
+  node: Node,
+  target: DefineAccessTarget,
+) -> Node {
+  case node {
+    DefineAccess(..) -> DefineAccess(..node, target:)
+    _ -> node
+  }
+}
+
+pub fn define_access_with_signin(node: Node, signin: Node) -> Node {
+  case node {
+    DefineAccess(..) ->
+      DefineAccess(
+        ..node,
+        type_: DefineAccessRecord(..node.type_, signin: option.Some(signin)),
+      )
+    _ -> node
+  }
+}
+
+pub fn define_access_with_signup(node: Node, signup: Node) -> Node {
+  case node {
+    DefineAccess(..) ->
+      DefineAccess(
+        ..node,
+        type_: DefineAccessRecord(..node.type_, signup: option.Some(signup)),
+      )
+    _ -> node
+  }
+}
+
+pub fn define_access_with_jwt_config(
+  node: Node,
+  config: JWTConfiguration,
+) -> Node {
+  case node {
+    DefineAccess(..) ->
+      DefineAccess(
+        ..node,
+        type_: DefineAccessRecord(..node.type_, jwt_config: option.Some(config)),
+      )
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                         Function Call                                         //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type FunctionCallNS {
+  FunctionCallNS(create: fn(Node) -> Node, add: fn(Node, Node) -> Node)
+}
+
+pub const function_call = FunctionCallNS(
+  create: function_call_create,
+  add: function_call_add_argument,
+)
+
+pub fn function_call_create(lhs: Node) -> Node {
+  FunctionCall(node: lhs, arguments: [])
+}
+
+pub fn function_call_add_argument(call: Node, arg: Node) -> Node {
+  case call {
+    FunctionCall(..) ->
+      FunctionCall(..call, arguments: list.append(call.arguments, [arg]))
+    _ -> call
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                             Self                                              //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type SelfNS {
+  SelfNS(create: fn() -> Node)
+}
+
+pub const self = SelfNS(create: self_create)
+
+pub fn self_create() -> Node {
+  Self
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                             None                                              //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type NoneNS {
+  NoneNS(create: fn() -> Node)
+}
+
+pub const none = NoneNS(create: none_create)
+
+pub fn none_create() -> Node {
+  None
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                              All                                              //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type AllNS {
+  AllNS(create: fn() -> Node)
+}
+
+pub const all = AllNS(create: all_create)
+
+pub fn all_create() -> Node {
+  All
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Number                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type NumberNS {
+  NumberNS(create: fn(Float) -> Node)
+}
+
+pub const number = NumberNS(create: number_create)
+
+pub fn number_create(value: Float) -> Node {
+  Number(value)
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                           Parameter                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type ParameterNS {
+  ParameterNS(create: fn(String) -> Node)
+}
+
+pub const parameter = ParameterNS(create: parameter_create)
+
+pub fn parameter_create(name: String) -> Node {
+  Parameter(name)
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                          Identifier                                           //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type IdentifierNS {
+  IdentifierNS(create: fn(String) -> Node)
+}
+
+pub const identifier = IdentifierNS(create: identifier_create)
+
+pub fn identifier_create(name: String) -> Node {
+  Identifier(name)
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                             Value                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type ValueNS {
+  ValueNS(
+    create: fn(surreal_ql.SurrealQL) -> Node,
+    string: fn(String) -> Node,
+    int: fn(Int) -> Node,
+    float: fn(Float) -> Node,
+    bool: fn(Bool) -> Node,
+  )
+}
+
+pub const value = ValueNS(
+  create: value_create,
+  string: value_create_string,
+  int: value_create_int,
+  float: value_create_float,
+  bool: value_create_bool,
+)
+
+pub fn value_create(value: surreal_ql.SurrealQL) -> Node {
+  Value(value)
+}
+
+pub fn value_create_string(value: String) -> Node {
+  Value(surreal_ql.String(value))
+}
+
+pub fn value_create_int(value: Int) -> Node {
+  Value(surreal_ql.Int(value))
+}
+
+pub fn value_create_float(value: Float) -> Node {
+  Value(surreal_ql.Float(value))
+}
+
+pub fn value_create_bool(value: Bool) -> Node {
+  Value(surreal_ql.Bool(value))
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Object                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type ObjectNS {
+  ObjectNS(create: fn() -> Node, add: fn(Node, String, Node) -> Node)
+}
+
+pub const object = ObjectNS(create: object_create, add: object_add)
+
+pub fn object_create() -> Node {
+  Object([])
+}
+
+pub fn object_add(object: Node, key: String, value: Node) -> Node {
+  case object {
+    Object(fields) -> Object(list.append(fields, [#(key, value)]))
+    _ -> object
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                             Array                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type ArrayNS {
+  ArrayNS(create: fn() -> Node, add: fn(Node, Node) -> Node)
+}
+
+pub const array = ArrayNS(create: array_create, add: array_add)
+
+pub fn array_create() -> Node {
+  Array([])
+}
+
+pub fn array_add(array: Node, value: Node) -> Node {
+  case array {
+    Array(values) -> Array(list.append(values, [value]))
+    _ -> array
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Select                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type SelectNS {
+  SelectNS(
+    create: fn(String) -> Node,
+    add_field: fn(Node, Node) -> Node,
+    add_value_field: fn(Node, Node) -> Node,
+    add_field_as: fn(Node, Node, String) -> Node,
+    add_value_field_as: fn(Node, Node, String) -> Node,
+    with_where: fn(Node, Node) -> Node,
+    add_order: fn(Node, Node, OrderDirection) -> Node,
+    with_limit: fn(Node, Node) -> Node,
+    set_group_all: fn(Node, Bool) -> Node,
+    set_only: fn(Node, Bool) -> Node,
+  )
+}
+
+pub const select = SelectNS(
+  create: select_create,
+  add_field: select_add_field,
+  add_value_field: select_add_value_field,
+  add_field_as: select_add_field_as,
+  add_value_field_as: select_add_value_field_as,
+  with_where: select_with_where,
+  add_order: select_add_order,
+  with_limit: select_with_limit,
+  set_group_all: select_set_group_all,
+  set_only: select_set_only,
+)
+
+pub fn select_create(table: String) -> Node {
+  Select(
+    fields: [],
+    only: False,
+    table:,
+    where: option.None,
+    order: option.None,
+    limit: option.None,
+    group_all: False,
+  )
+}
+
+pub fn select_add_field(select: Node, field: Node) -> Node {
+  case select {
+    Select(..) ->
+      Select(
+        ..select,
+        fields: list.append(select.fields, [
+          SelectField(field:, alias: option.None, value: False),
+        ]),
+      )
+    _ -> select
+  }
+}
+
+pub fn select_add_value_field(select: Node, field: Node) -> Node {
+  case select {
+    Select(..) ->
+      Select(
+        ..select,
+        fields: list.append(select.fields, [
+          SelectField(field:, alias: option.None, value: True),
+        ]),
+      )
+    _ -> select
+  }
+}
+
+pub fn select_add_field_as(select: Node, field: Node, alias: String) -> Node {
+  case select {
+    Select(..) ->
+      Select(
+        ..select,
+        fields: list.append(select.fields, [
+          SelectField(field:, alias: option.Some(alias), value: False),
+        ]),
+      )
+    _ -> select
+  }
+}
+
+pub fn select_add_value_field_as(
+  select: Node,
+  field: Node,
+  alias: String,
+) -> Node {
+  case select {
+    Select(..) ->
+      Select(
+        ..select,
+        fields: list.append(select.fields, [
+          SelectField(field:, alias: option.Some(alias), value: True),
+        ]),
+      )
+    _ -> select
+  }
+}
+
+pub fn select_with_where(select: Node, condition: Node) -> Node {
+  case select {
+    Select(..) -> Select(..select, where: option.Some(condition))
+    _ -> select
+  }
+}
+
+pub fn select_add_order(
+  select: Node,
+  node: Node,
+  order: OrderDirection,
+) -> Node {
+  case select {
+    Select(..) ->
+      Select(
+        ..select,
+        order: option.unwrap(select.order, [])
+          |> list.append([#(node, order)])
+          |> option.Some,
+      )
+    _ -> select
+  }
+}
+
+pub fn select_with_limit(select: Node, limit: Node) -> Node {
+  case select {
+    Select(..) -> Select(..select, limit: option.Some(limit))
+    _ -> select
+  }
+}
+
+pub fn select_set_group_all(select: Node, group_all: Bool) -> Node {
+  case select {
+    Select(..) -> Select(..select, group_all: group_all)
+    _ -> select
+  }
+}
+
+pub fn select_set_only(select: Node, only: Bool) -> Node {
+  case select {
+    Select(..) -> Select(..select, only: only)
+    _ -> select
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                              If                                               //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type IfNS {
+  IfNS(
+    create: fn(Node, Node, Node) -> Node,
+    add_else_if: fn(Node, Node, Node) -> Node,
+  )
+}
+
+pub const if_ = IfNS(create: if_create, add_else_if: if_add_else_if)
+
+pub fn if_create(condition: Node, then: Node, else_: Node) -> Node {
+  If(condition: condition, then_: then, else_ifs: [], else_: else_)
+}
+
+pub fn if_add_else_if(if_node: Node, condition: Node, then: Node) -> Node {
+  case if_node {
+    If(..) ->
+      If(
+        ..if_node,
+        else_ifs: list.append(if_node.else_ifs, [#(condition, then)]),
+      )
+    _ -> if_node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                       Binary Operation                                        //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type BinopNS {
+  BinopNS(
+    create: fn(Node, Operator, Node) -> Node,
+    equal: fn(Node, Node) -> Node,
+    not_equal: fn(Node, Node) -> Node,
+    greater_than: fn(Node, Node) -> Node,
+    less_than: fn(Node, Node) -> Node,
+    greater_than_or_equal: fn(Node, Node) -> Node,
+    less_than_or_equal: fn(Node, Node) -> Node,
+    access: fn(Node, Node) -> Node,
+    namespace_access: fn(Node, Node) -> Node,
+    inside: fn(Node, Node) -> Node,
+    relation_to: fn(Node, Node) -> Node,
+    relation_from: fn(Node, Node) -> Node,
+    relation_to_from: fn(Node, Node) -> Node,
+    indexing: fn(Node, Node) -> Node,
+    and: fn(Node, Node) -> Node,
+    or: fn(Node, Node) -> Node,
+  )
+}
+
+pub const binop = BinopNS(
+  create: binop_create,
+  equal: binop_equal,
+  not_equal: binop_not_equal,
+  greater_than: binop_greater_than,
+  less_than: binop_less_than,
+  greater_than_or_equal: binop_greater_than_or_equal,
+  less_than_or_equal: binop_less_than_or_equal,
+  access: binop_access,
+  namespace_access: binop_namespace_access,
+  inside: binop_inside,
+  relation_to: binop_relation_to,
+  relation_from: binop_relation_from,
+  relation_to_from: binop_relation_to_from,
+  indexing: binop_index,
+  and: binop_and,
+  or: binop_or,
+)
+
+pub fn binop_create(lhs: Node, operator: Operator, rhs: Node) -> Node {
+  BinaryOperator(lhs: lhs, operator: operator, rhs: rhs)
+}
+
+pub fn binop_equal(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, Equal, rhs)
+}
+
+pub fn binop_not_equal(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, NotEqual, rhs)
+}
+
+pub fn binop_greater_than(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, GreaterThan, rhs)
+}
+
+pub fn binop_less_than(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, LessThan, rhs)
+}
+
+pub fn binop_greater_than_or_equal(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, GreaterThanOrEqual, rhs)
+}
+
+pub fn binop_less_than_or_equal(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, LessThanOrEqual, rhs)
+}
+
+pub fn binop_access(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, Access, rhs)
+}
+
+pub fn binop_namespace_access(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, NamespaceAccess, rhs)
+}
+
+pub fn binop_inside(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, Inside, rhs)
+}
+
+pub fn binop_relation_to(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, RelationTo, rhs)
+}
+
+pub fn binop_relation_from(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, RelationFrom, rhs)
+}
+
+pub fn binop_relation_to_from(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, RelationToFrom, rhs)
+}
+
+pub fn binop_index(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, Indexing, rhs)
+}
+
+pub fn binop_and(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, And, rhs)
+}
+
+pub fn binop_or(lhs: Node, rhs: Node) -> Node {
+  binop_create(lhs, Or, rhs)
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Wrapped                                            //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type WrappedNS {
+  WrappedNS(create: fn(Node) -> Node)
+}
+
+pub const wrapped = WrappedNS(create: wrapped_create)
+
+pub fn wrapped_create(node: Node) -> Node {
+  WrappedNode(node: node)
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Update                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type UpdateNS {
+  UpdateNS(
+    create: fn(String) -> Node,
+    set_only: fn(Node, Bool) -> Node,
+    add_set: fn(Node, Node) -> Node,
+    with_where: fn(Node, Node) -> Node,
+  )
+}
+
+pub const update = UpdateNS(
+  create: update_create,
+  set_only: update_set_only,
+  add_set: update_add_set,
+  with_where: update_with_where,
+)
+
+pub fn update_create(target: String) -> Node {
+  Update(only: False, target: target, set: [], where: option.None)
+}
+
+pub fn update_set_only(node: Node, only: Bool) -> Node {
+  case node {
+    Update(..) -> Update(..node, only: only)
+    _ -> node
+  }
+}
+
+pub fn update_add_set(node: Node, item: Node) -> Node {
+  case node {
+    Update(..) -> Update(..node, set: list.append(node.set, [item]))
+    _ -> node
+  }
+}
+
+pub fn update_with_where(node: Node, where: Node) -> Node {
+  case node {
+    Update(..) -> Update(..node, where: option.Some(where))
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Create                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type CreateNS {
+  CreateNS(
+    create: fn(String) -> Node,
+    set_only: fn(Node, Bool) -> Node,
+    add_set: fn(Node, Node) -> Node,
+  )
+}
+
+pub const create = CreateNS(
+  create: create_create,
+  set_only: create_set_only,
+  add_set: create_add_set,
+)
+
+pub fn create_create(target: String) -> Node {
+  Create(only: False, target: target, set: [])
+}
+
+pub fn create_set_only(node: Node, only: Bool) -> Node {
+  case node {
+    Create(..) -> Create(..node, only:)
+    _ -> node
+  }
+}
+
+pub fn create_add_set(node: Node, item: Node) -> Node {
+  case node {
+    Create(..) -> Create(..node, set: list.append(node.set, [item]))
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Relate                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type RelateNS {
+  RelateNS(
+    create: fn(String, Node, Node) -> Node,
+    add_set: fn(Node, Node) -> Node,
+  )
+}
+
+pub const relate = RelateNS(create: relate_create, add_set: relate_add_set)
+
+pub fn relate_create(table: String, from: Node, to: Node) -> Node {
+  Relate(table: table, from: from, to: to, set: [])
+}
+
+pub fn relate_add_set(node: Node, item: Node) -> Node {
+  case node {
+    Relate(..) -> Relate(..node, set: list.append(node.set, [item]))
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Lambda                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type LambdaNS {
+  LambdaNS(create: fn(Node) -> Node, add_parameter: fn(Node, String) -> Node)
+}
+
+pub const lambda = LambdaNS(
+  create: lambda_create,
+  add_parameter: lambda_add_parameter,
+)
+
+pub fn lambda_create(body: Node) -> Node {
+  Lambda(body: body, parameters: [])
+}
+
+pub fn lambda_add_parameter(node: Node, parameter: String) -> Node {
+  case node {
+    Lambda(..) ->
+      Lambda(..node, parameters: list.append(node.parameters, [parameter]))
+    _ -> node
+  }
+}
+
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+//                                            Delete                                             //
+// ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
+
+pub type DeleteNS {
+  DeleteNS(
+    create: fn(Node) -> Node,
+    set_only: fn(Node, Bool) -> Node,
+    with_where: fn(Node, Node) -> Node,
+  )
+}
+
+pub const delete = DeleteNS(
+  create: delete_create,
+  set_only: delete_set_only,
+  with_where: delete_with_where,
+)
+
+pub fn delete_create(target: Node) {
+  Delete(only: False, target:, where: option.None)
+}
+
+pub fn delete_set_only(node: Node, only: Bool) -> Node {
+  case node {
+    Delete(..) -> Delete(..node, only: only)
+    _ -> node
+  }
+}
+
+pub fn delete_with_where(node: Node, where: Node) -> Node {
+  case node {
+    Delete(..) -> Delete(..node, where: option.Some(where))
+    _ -> node
+  }
+}
